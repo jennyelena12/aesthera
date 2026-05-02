@@ -11,35 +11,28 @@ import PhotosUI
 
 struct FaceScannerView: View {
     @State private var viewModel = FaceScannerViewModel()
-    @State private var selectedItem: PhotosPickerItem? = nil;
+    @State private var selectedItem: PhotosPickerItem? = nil
     
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
+            
             if let image = viewModel.selectedImage {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(
-                        GeometryReader { geo in
+                        Group {
                             if case .success(let faces) = viewModel.detectionState {
-                                ForEach(0..<faces.count, id: \.self) { index in
-                                    let box = faces[index].boundingBox
-                                    Rectangle()
-                                        .path(in: CGRect(
-                                            x: box.minX * geo.size.width,
-                                            y: box.minY * geo.size.height,
-                                            width: box.width * geo.size.width,
-                                            height: box.height * geo.size.height
-                                        ))
-                                        .stroke(Color.red, lineWidth: 3)
-                                }
+                                FaceLandmarkOverlay(
+                                    imageSize: image.size,
+                                    observations: faces
+                                )
                             }
                         }
                     )
-            }
-            else {
+            } else {
                 VStack {
                     Image(systemName: "photo").font(.largeTitle)
                     Text("Select an Image")
@@ -50,6 +43,7 @@ struct FaceScannerView: View {
             Spacer()
             
             statusView
+            
             PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
                 Text("Choose Image")
                     .font(.headline)
@@ -59,11 +53,10 @@ struct FaceScannerView: View {
             .onChange(of: selectedItem) { _, newItem in
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data){
+                       let uiImage = UIImage(data: data) {
                         viewModel.processSelectedImage(uiImage)
                     }
                 }
-                
             }
         }
         .navigationTitle("Miawmiaw")

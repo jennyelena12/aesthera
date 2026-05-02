@@ -44,18 +44,29 @@ class FaceDetectorService {
         }
         
         let yoloResults = try await runYOLO(on: cgImage)
-        
-        if yoloResults.isEmpty { return [] }
+        guard !yoloResults.isEmpty else { return [] }
         
         var validFaces: [CleanFaceData] = []
         
-        for boundingBox in yoloResults {
-            if let cropepdFaceImage = cropImage(cgImage, toRect: boundingBox) {
-                if let faceData = try await runLandmarks(on: cropepdFaceImage, originalBoundingBox: boundingBox) {
-                    validFaces.append(faceData)
-                }
-                
-            }
+        for box in yoloResults {
+            
+            let squareBox = box
+            
+            let clampedBox = CGRect(
+                x: max(0, squareBox.minX),
+                y: max(0, squareBox.minY),
+                width: min(1.0 - max(0, squareBox.minX), squareBox.width),
+                height: min(1.0 - max(0, squareBox.minY), squareBox.height)
+            )
+            
+            guard let cropped = cropImage(cgImage, toRect: clampedBox) else { continue }
+            
+            guard let faceData = try await runLandmarks(
+                on: cropped,
+                originalBoundingBox: clampedBox
+            ) else { continue }
+            
+            validFaces.append(faceData)
         }
         return validFaces
     }
@@ -73,7 +84,7 @@ class FaceDetectorService {
             
             return []
         }
-        return YOLODecoder.decode(features: results, treshold: 0.5, iouTreshold: 0.1)
+        return YOLODecoder.decode(features: results, treshold: 0.3, iouTreshold: 0.3)
     }
     
     private func runLandmarks(on croppedFace: CGImage, originalBoundingBox: CGRect) async throws -> CleanFaceData? {
@@ -85,76 +96,86 @@ class FaceDetectorService {
         guard let results = request.results as? [VNCoreMLFeatureValueObservation],
               let multiArray = results.first?.featureValue.multiArrayValue else { return nil }
         
-        var rawPoints: [CGPoint] = []
-        
         print("Tensor SHape : \(multiArray)")
         
-        // if else dibawah untuk handle kemungkinan return dari neural networknya (soalnya ga pasti yang mana satu, jd prevent satu satu)
-        // case untuk array normal x,y x,y ...
-        if multiArray.shape.count == 2 || (multiArray.shape.count == 1 && multiArray.count >= 56) {
-            for i in stride(from: 0, to: 56, by: 2) {
-                let x = CGFloat(truncating: multiArray[i])
-                let y = CGFloat(truncating: multiArray[i+1])
-                rawPoints.append(CGPoint(x: x, y: y))
-            }
-        }
-        // case untuk heatmap atau bentuk 1,28, H,W
-        else if multiArray.shape.count == 4 {
-
-            let keypointsCount = multiArray.shape[1].intValue
-            let height = multiArray.shape[2].intValue
-            let width = multiArray.shape[3].intValue
-            
-            for k in 0..<keypointsCount {
-                let (nX, nY) = getNormalizedHeatMapCoordinate(multiArray, height: height, width: width, k: k)
-                rawPoints.append(CGPoint(x: nX, y: nY))
-            }
-        }
-        else {
-            print("Unrecognized Shape Error.")
-            return nil
-        }
+        guard let normalizedPoints = getNormalizedHeatMapCoordinate(multiArray), normalizedPoints.count == 28 else { return nil }
         
-        guard rawPoints.count == 28 else { return nil }
         
-        let mappedPoints = rawPoints.map { point -> AnchorPoint in
+        
+        let mappedPoints = normalizedPoints.map { point -> AnchorPoint in
             let absoluteX = originalBoundingBox.minX + (point.x * originalBoundingBox.width)
             let absoluteY = originalBoundingBox.minY + (point.y * originalBoundingBox.height)
             return AnchorPoint(x: absoluteX, y: absoluteY, confidence: 1.0)
         }
         
-        return CleanFaceData(chin: mappedPoints[0],
-                             mouth: mappedPoints[1],
-                             nose: mappedPoints[2],
-                             leftSide: mappedPoints[3],
-                             rightSide: mappedPoints[4],
-                             leftEyeTop: mappedPoints[5],
-                             rightEyeTop: mappedPoints[6],
-                             leftEyeBottom: mappedPoints[7],
-                             rightEyeBottom: mappedPoints[8],
+        
+        return CleanFaceData(chin: mappedPoints[FaceFeatureIndex.chinIndex],
+                             mouth: mappedPoints[FaceFeatureIndex.mouthIndex],
+                             nose: mappedPoints[FaceFeatureIndex.noseIndex],
+                             leftSide: mappedPoints[FaceFeatureIndex.leftSideIndex],
+                             rightSide: mappedPoints[FaceFeatureIndex.rightSideIndex],
+                             leftEyeTop: mappedPoints[FaceFeatureIndex.leftEyeTopIndex],
+                             rightEyeTop: mappedPoints[FaceFeatureIndex.rightEyeTopIndex],
+                             leftEyeBottom: mappedPoints[FaceFeatureIndex.leftEyeBottomIndex],
+                             rightEyeBottom: mappedPoints[FaceFeatureIndex.rightEyeBottomIndex],
                              boundingBox: originalBoundingBox)
     }
-
-    private func getNormalizedHeatMapCoordinate(_ multiArray: MLMultiArray, height: Int, width: Int, k: Int) -> (CGFloat, CGFloat){
-        var maxVal: Float = -1.0
-        var maxIndex = (x: 0, y: 0)
+    
+    private func getNormalizedHeatMapCoordinate(_ multiArray: MLMultiArray) -> [CGPoint]? {
+        guard multiArray.shape.count == 4 else { return nil }
         
-        for y in 0..<height {
-            for x in 0..<width {
-                let index = [0, NSNumber(value: k), NSNumber(value: y), NSNumber(value: x)];
-                let val = multiArray[index].floatValue
-                if val > maxVal {
-                    maxVal = val
-                    maxIndex = (x,y)
+        let K = multiArray.shape[1].intValue
+        let height = multiArray.shape[2].intValue
+        let width = multiArray.shape[3].intValue
+        
+        var points: [CGPoint] = []
+        
+        for k in 0..<K {
+            var maxVal: Float = -.infinity
+            var maxX = 0, maxY = 0
+            
+            for y in 0..<height {
+                for x in 0..<width {
+                    let idx: [NSNumber] = [0, NSNumber(value: k), NSNumber(value: y), NSNumber(value: x)]
+                    let val = multiArray[idx].floatValue
+                    if val > maxVal {
+                        maxVal = val
+                        maxX = x; maxY = y
+                    }
                 }
             }
+            
+            var refinedX = CGFloat(maxX)
+            var refinedY = CGFloat(maxY)
+            
+            if maxX > 0 && maxX < width - 1 {
+                let left  = multiArray[[0, NSNumber(value: k),
+                                        NSNumber(value: maxY),
+                                        NSNumber(value: maxX - 1)]].floatValue
+                let right = multiArray[[0, NSNumber(value: k),
+                                        NSNumber(value: maxY),
+                                        NSNumber(value: maxX + 1)]].floatValue
+                refinedX += CGFloat(right > left ? 0.25 : -0.25)
+            }
+            
+            if maxY > 0 && maxY < height - 1 {
+                let up   = multiArray[[0, NSNumber(value: k),
+                                       NSNumber(value: maxY - 1),
+                                       NSNumber(value: maxX)]].floatValue
+                let down = multiArray[[0, NSNumber(value: k),
+                                       NSNumber(value: maxY + 1),
+                                       NSNumber(value: maxX)]].floatValue
+                refinedY += CGFloat(down > up ? 0.25 : -0.25)
+            }
+            
+            let nx = refinedX / CGFloat(width)
+            let ny = refinedY / CGFloat(height)
+            points.append(CGPoint(x: nx, y: ny))
         }
         
-        let nX = CGFloat(maxIndex.x) / CGFloat(width)
-        let nY = CGFloat(maxIndex.y) / CGFloat(height)
-        return (nX, nY)
+        return points
     }
-
+    
     
     private func cropImage(_ image: CGImage, toRect rect: CGRect) -> CGImage? {
         let imgWidth = CGFloat(image.width)
@@ -166,5 +187,21 @@ class FaceDetectorService {
                               height: rect.height * imgHeight)
         
         return image.cropping(to: cropRect)
+    }
+    
+    private func makeSquareBoundingBox(_ box: CGRect, scale: CGFloat = 1.3) -> CGRect {
+        let centerX = box.midX
+        let centerY = box.midY
+        
+        let maxDimension = max(box.width, box.height)
+        
+        let scaledSide = maxDimension * scale
+        
+        return CGRect(
+            x: centerX - (scaledSide / 2.0),
+            y: centerY - (scaledSide / 2.0),
+            width: scaledSide,
+            height: scaledSide
+        )
     }
 }
