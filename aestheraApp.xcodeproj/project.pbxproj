@@ -11,6 +11,16 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		3F1A184D2FA60CE000BB4CB6 /* Models */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Models;
+			sourceTree = "<group>";
+		};
+		3F1A18532FA60D7D00BB4CB6 /* ViewModels */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
 		3F8AF05B2FA4349400AA09BB /* aestheraApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = aestheraApp;
@@ -34,6 +44,8 @@
 			children = (
 				3F8AF05B2FA4349400AA09BB /* aestheraApp */,
 				3F8AF05A2FA4349400AA09BB /* Products */,
+				3F1A184D2FA60CE000BB4CB6 /* Models */,
+				3F1A18532FA60D7D00BB4CB6 /* ViewModels */,
 			);
 			sourceTree = "<group>";
 		};
@@ -61,6 +73,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				3F1A184D2FA60CE000BB4CB6 /* Models */,
+				3F1A18532FA60D7D00BB4CB6 /* ViewModels */,
 				3F8AF05B2FA4349400AA09BB /* aestheraApp */,
 			);
 			name = aestheraApp;
