@@ -11,7 +11,7 @@ import SwiftUI
 struct aestheraAppApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            FaceScannerView()
         }
     }
 }
