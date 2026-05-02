@@ -25,7 +25,8 @@ struct FaceScannerView: View {
                         GeometryReader { geo in
                             if case .success(let faces) = viewModel.detectionState {
                                 ForEach(0..<faces.count, id: \.self) { index in
-                                    let box = faces[index].boundingBox
+                                    let face = faces[index]
+                                    let box = face.boundingBox
                                     Rectangle()
                                         .path(in: CGRect(
                                             x: box.minX * geo.size.width,
@@ -34,6 +35,20 @@ struct FaceScannerView: View {
                                             height: box.height * geo.size.height
                                         ))
                                         .stroke(Color.red, lineWidth: 3)
+                                    
+                                    let anchorPoints = [
+                                        face.chin, face.mouth, face.nose, face.leftSide, face.rightSide, face.leftEyeTop, face.rightEyeTop
+                                    ]
+                                    
+                                    ForEach(0..<anchorPoints.count, id: \.self) { idx in
+                                        let point = anchorPoints[idx]
+                                        Circle().fill(Color.green)
+                                            .frame(width: 6, height: 6)
+                                            .position(
+                                                x: point.x * geo.size.width,
+                                                y: point.y * geo.size.height
+                                            )
+                                    }
                                 }
                             }
                         }
