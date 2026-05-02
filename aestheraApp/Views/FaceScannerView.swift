@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import PhotosUI
 
-struct ScannerView: View {
+struct FaceScannerView: View {
     @State private var viewModel = FaceScannerViewModel()
     @State private var selectedItem: PhotosPickerItem? = nil;
     
@@ -21,6 +21,23 @@ struct ScannerView: View {
                     .resizable()
                     .scaledToFit()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        GeometryReader { geo in
+                            if case .success(let faces) = viewModel.detectionState {
+                                ForEach(0..<faces.count, id: \.self) { index in
+                                    let box = faces[index].boundingBox
+                                    Rectangle()
+                                        .path(in: CGRect(
+                                            x: box.minX * geo.size.width,
+                                            y: box.minY * geo.size.height,
+                                            width: box.width * geo.size.width,
+                                            height: box.height * geo.size.height
+                                        ))
+                                        .stroke(Color.red, lineWidth: 3)
+                                }
+                            }
+                        }
+                    )
             }
             else {
                 VStack {
@@ -67,8 +84,4 @@ struct ScannerView: View {
             Text("Error: \(error)").foregroundStyle(.red)
         }
     }
-}
-
-#Preview {
-    ScannerView()
 }
