@@ -24,11 +24,14 @@ struct FaceScannerView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(
                         Group {
-                            if case .success(let faces) = viewModel.detectionState {
-                                FaceLandmarkOverlay(
-                                    imageSize: image.size,
-                                    observations: faces
-                                )
+                            if case .success(var faces) = viewModel.detectionState {
+                                ForEach(0..<faces.count, id: \.self) { index in
+                                    AdjustableGuidelineOverlay(
+                                        imageSize: image.size,
+                                        face: Binding(get: {faces[index]},
+                                                      set: {faces[index] = $0; viewModel.detectionState = .success(faces)}),
+                                        lineWidth: 2.0)
+                                }
                             }
                         }
                     )
