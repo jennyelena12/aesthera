@@ -35,8 +35,8 @@ struct DraggableNode: View {
                         let normX = value.translation.width / drawnWidth
                         let normY = value.translation.height / drawnHeight
                         
-                        point.x = normX
-                        point.y = normY
+                        point.x += normX
+                        point.y += normY
                         
                         self.dragOffset = .zero
                     }
