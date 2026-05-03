@@ -16,23 +16,23 @@ enum FaceDetectionState {
 }
 
 struct AnchorPoint {
-    let x: CGFloat
-    let y: CGFloat
-    let confidence: Float
+    var x: CGFloat
+    var y: CGFloat
+    var confidence: Float
 }
 
 struct CleanFaceData {
-    let chin: AnchorPoint
-    let mouth: AnchorPoint
-    let nose: AnchorPoint
-    let leftSide: AnchorPoint
-    let rightSide: AnchorPoint
+    var chin: AnchorPoint
+    var mouth: AnchorPoint
+    var nose: AnchorPoint
+    var leftSide: AnchorPoint
+    var rightSide: AnchorPoint
     
-    let leftEyeTop: AnchorPoint
-    let rightEyeTop: AnchorPoint
+    var leftEyeTop: AnchorPoint
+    var rightEyeTop: AnchorPoint
     
-    let leftEyeBottom: AnchorPoint
-    let rightEyeBottom: AnchorPoint
+    var leftEyeBottom: AnchorPoint
+    var rightEyeBottom: AnchorPoint
     
-    let boundingBox: CGRect
+    var boundingBox: CGRect
 }
