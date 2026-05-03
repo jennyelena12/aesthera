@@ -77,12 +77,12 @@ struct FaceMetrics {
     
     func getCenterAxisPath() -> Path {
         let dist = hypot(eyeMid.x - chin.x, eyeMid.y - chin.y)
-        let len = dist + (cranialRadius * 2.0)
+        let len = dist + (cranialRadius * 2.0) + (eyeMid.y - chin.y)
         
         var centerLine = Path()
         centerLine.move(to: chin)
         centerLine.addLine(to: CGPoint(x: chin.x + ((mouth.x - chin.x) / dist) * len,
-                                       y: chin.y + ((mouth.y - chin.y) / dist) * len))
+                                       y: chin.y + ((eyeMid.y - chin.y) / dist) * len))
         return centerLine
     }
     

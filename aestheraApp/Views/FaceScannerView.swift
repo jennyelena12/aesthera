@@ -12,6 +12,7 @@ import PhotosUI
 struct FaceScannerView: View {
     @State private var viewModel = FaceScannerViewModel()
     @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var resultFaces: [CleanFaceData] = []
     
     var body: some View {
         VStack(spacing: 20) {
@@ -23,15 +24,12 @@ struct FaceScannerView: View {
                     .scaledToFit()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(
-                        Group {
-                            if case .success(var faces) = viewModel.detectionState {
-                                ForEach(0..<faces.count, id: \.self) { index in
-                                    AdjustableGuidelineOverlay(
-                                        imageSize: image.size,
-                                        face: Binding(get: {faces[index]},
-                                                      set: {faces[index] = $0; viewModel.detectionState = .success(faces)}),
-                                        lineWidth: 2.0)
-                                }
+                        ZStack {
+                            ForEach($resultFaces.indices, id: \.self) { idx in
+                                AdjustableGuidelineOverlay(
+                                    imageSize: image.size,
+                                    face: $resultFaces[idx],
+                                    lineWidth: 2.0)
                             }
                         }
                     )
@@ -60,6 +58,15 @@ struct FaceScannerView: View {
                         viewModel.processSelectedImage(uiImage)
                     }
                 }
+            }
+            .onChange(of: viewModel.detectionState) { _, newState in
+                if case .success(let faces) = newState {
+                    resultFaces = faces
+                }
+                else {
+                    resultFaces = []
+                }
+                
             }
         }
         .navigationTitle("Miawmiaw")

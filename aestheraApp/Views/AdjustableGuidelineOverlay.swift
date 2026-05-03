@@ -34,7 +34,7 @@ struct AdjustableGuidelineOverlay: View {
                     context.stroke(metrics.getEyePath(top: false), with: .color(.red.opacity(0.8)), lineWidth: 1.5)
                     context.stroke(metrics.getChinPath(), with: .color(.red.opacity(0.8)), lineWidth: 1.5)
                     
-                }
+                }.allowsHitTesting(false)
                 
                 let nodes: [(binding: Binding<AnchorPoint>, color: Color)] = [
                     ($face.chin, .orange),

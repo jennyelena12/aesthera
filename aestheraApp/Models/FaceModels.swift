@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum FaceDetectionState {
+enum FaceDetectionState: Equatable {
     case idle
     case analyzing
     case success([CleanFaceData])
@@ -15,13 +15,13 @@ enum FaceDetectionState {
     case error(String)
 }
 
-struct AnchorPoint {
+struct AnchorPoint: Equatable {
     var x: CGFloat
     var y: CGFloat
     var confidence: Float
 }
 
-struct CleanFaceData {
+struct CleanFaceData: Equatable {
     var chin: AnchorPoint
     var mouth: AnchorPoint
     var nose: AnchorPoint
