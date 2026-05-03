@@ -27,7 +27,7 @@ struct GuideCircle: PencilKitConvertible {
             points.append(point)
         }
         
-        let path = PKStrokePath()
+        let path = PKStrokePath(controlPoints: points, creationDate: Date())
         return PKStroke(ink: PKInk(.pen, color: color), path: path)
     }
 }
