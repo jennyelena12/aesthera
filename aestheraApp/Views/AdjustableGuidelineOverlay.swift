@@ -38,6 +38,7 @@ struct AdjustableGuidelineOverlay: View {
                 
                 let nodes: [(binding: Binding<AnchorPoint>, color: Color)] = [
                     ($face.chin, .orange),
+                    ($face.mouth, .orange),
                     ($face.leftSide, .orange),
                     ($face.rightSide, .orange),
                     ($face.leftEyeTop, .orange),

@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct FaceMetrics {
-    let chin, nose, leftSide, rightSide: CGPoint
+    let chin, nose, leftSide, rightSide, mouth: CGPoint
     let leftEyeTop, leftEyeBottom, rightEyeTop, rightEyeBottom: CGPoint
     
     let eyeMid, cranialCenter: CGPoint
@@ -28,6 +28,7 @@ struct FaceMetrics {
         
         self.chin = makeCGPoint(face.chin)
         self.nose = makeCGPoint(face.nose)
+        self.mouth = makeCGPoint(face.mouth)
         self.leftEyeTop = makeCGPoint(face.leftEyeTop)
         self.leftEyeBottom = makeCGPoint(face.leftEyeBottom)
         self.rightEyeTop = makeCGPoint(face.rightEyeTop)
@@ -80,7 +81,8 @@ struct FaceMetrics {
         
         var centerLine = Path()
         centerLine.move(to: chin)
-        centerLine.addLine(to: CGPoint(x: chin.x + ((eyeMid.x - chin.x) / dist) * len, y: chin.y + ((eyeMid.y - chin.y) / dist) * len))
+        centerLine.addLine(to: CGPoint(x: chin.x + ((mouth.x - chin.x) / dist) * len,
+                                       y: chin.y + ((mouth.y - chin.y) / dist) * len))
         return centerLine
     }
     
