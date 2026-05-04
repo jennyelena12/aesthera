@@ -8,76 +8,146 @@
 import Foundation
 import SwiftUI
 import PhotosUI
-
+import PencilKit
+ 
 struct FaceScannerView: View {
     @State private var viewModel = FaceScannerViewModel()
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var resultFaces: [CleanFaceData] = []
+ 
+    @State private var guidelineCanvas = PKCanvasView()
+    @State private var drawingCanvas = PKCanvasView()
+    @State private var isDrawingMode = false
+    @State private var isEraser = false
+    
+    @State private var showGuidelines = true
+    @State private var showDrawing = true
+    
     
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
             
             if let image = viewModel.selectedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        ZStack {
-                            ForEach($resultFaces.indices, id: \.self) { idx in
+                GeometryReader { geo in
+                    let scale = min(geo.size.width / image.size.width, geo.size.height / image.size.height)
+                    let drawnWidth = image.size.width * scale
+                    let drawnHeight = image.size.height * scale
+                    let offsetX = (geo.size.width - drawnWidth) / 2
+                    let offsetY = (geo.size.height - drawnHeight) / 2
+                    
+                    ZStack {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        
+                        if !isDrawingMode {
+                            ForEach($resultFaces.indices, id: \.self) { index in
                                 AdjustableGuidelineOverlay(
                                     imageSize: image.size,
-                                    face: $resultFaces[idx],
-                                    lineWidth: 2.0)
+                                    face: $resultFaces[index],
+                                    lineWidth: 5.0
+                                )
                             }
                         }
-                    )
+                        DrawingCanvasView(canvasView: $guidelineCanvas, isDrawingMode: .constant(false), isEraser: .constant(false))
+                            .opacity(showGuidelines ? 1.0 : 0.0)
+                            .allowsHitTesting(false)
+                        
+                        DrawingCanvasView(canvasView: $drawingCanvas, isDrawingMode: $isDrawingMode, isEraser: $isEraser)
+                            .opacity(showDrawing ? 1.0 : 0.0)
+                            .allowsHitTesting(isDrawingMode)
+                        
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        if !isDrawingMode && !resultFaces.isEmpty {
+                            Button("Convert to Canvas") {
+                                let drawing = GuidelineConvert.convertToDrawing(
+                                    faces: resultFaces,
+                                    drawnSize: CGSize(width: drawnWidth, height: drawnHeight),
+                                    offsetPoint: CGPoint(x: offsetX, y: offsetY),
+                                    width: 4.0
+                                )
+                                guidelineCanvas.drawing = drawing
+                                isDrawingMode = true
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .padding()
+                        }
+                    }
+                }
+                .frame(height: 500)
                 
             } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "photo")
-                        .font(.largeTitle)
+                VStack {
+                    Image(systemName: "photo").font(.largeTitle)
                     Text("Select an Image")
                 }
                 .foregroundStyle(.secondary)
             }
             
             Spacer()
-            
-            statusView
-            if case .success(let faces) = viewModel.detectionState,
-               let image = viewModel.selectedImage {
-                HStack(spacing: 12) {
-                    Button {
-                        saveOverlayImage(image: image, faces: faces)
-                    } label: {
-                        Label("Download", systemImage: "arrow.down.to.line")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+
+            if isDrawingMode {
+                VStack {
+                    HStack(spacing: 40) {
+                        Button(action: { isEraser = false }) {
+                            VStack {
+                                Image(systemName: "pencil.tip")
+                                    .font(.title2)
+                                Text("Pen")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(!isEraser ? .blue : .gray)
+                        }
+                        
+                        Button(action: { isEraser = true }) {
+                            VStack {
+                                Image(systemName: "eraser.fill")
+                                    .font(.title2)
+                                Text("Eraser")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(isEraser ? .blue : .gray)
+                        }
+                        
+                        Button(action: { drawingCanvas.drawing = PKDrawing() }) {
+                            VStack {
+                                Image(systemName: "trash")
+                                    .font(.title2)
+                                Text("Clear")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(.red)
+                        }
                     }
-                    .buttonStyle(.bordered)
+                    Divider()
                     
-                    NavigationLink {
-                        DrawingCanvasView(
-                            originalImage: image,
-                            faceObservations: faces
-                        )
-                    } label: {
-                        Label("Draw Now!", systemImage: "paintpalette.fill")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                    HStack(spacing: 20) {
+                        Toggle(isOn: $showGuidelines) {
+                            Label("Guidelines", systemImage: "face.dashed")
+                                .font(.caption)
+                        }
+                        .toggleStyle(.button)
+ 
+                        Toggle(isOn: $showDrawing) {
+                            Label("My Drawing", systemImage: "paintbrush")
+                                .font(.caption)
+                        }
+                        .toggleStyle(.button)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
                 }
-                .padding(.horizontal)
+                .padding()
+                .background(Color(.systemBackground))
+                .cornerRadius(15)
+                .shadow(radius: 5)
             }
             
-            PhotosPicker(
-                selection: $selectedItem,
-                matching: .images,
-                photoLibrary: .shared()
-            ) {
+            statusView
+            
+            PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
                 Text("Choose Image")
                     .font(.headline)
                     .padding()
@@ -91,18 +161,26 @@ struct FaceScannerView: View {
                     }
                 }
             }
+            .onChange(of: viewModel.detectionState) { _, newState in
+                if case .success(let faces) = newState {
+                    resultFaces = faces
+                } else {
+                    resultFaces = []
+                }
+            }
+            
         }
         .onChange(of: viewModel.detectionState) { _, newState in
             if case .success(let faces) = newState {
                 resultFaces = faces
-            }
-            else {
+                guidelineCanvas.drawing = PKDrawing()
+                drawingCanvas.drawing = PKDrawing()
+                isDrawingMode = false
+            } else {
                 resultFaces = []
             }
-            
         }
-        .navigationTitle("Aesthera")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Miawmiaw")
     }
     
     @ViewBuilder
@@ -110,35 +188,14 @@ struct FaceScannerView: View {
         switch viewModel.detectionState {
         case .idle:
             Text("Ready to Analyze")
-                .foregroundStyle(.secondary)
         case .analyzing:
-            ProgressView("Analyzing…")
+            ProgressView("Loading...")
         case .success(let array):
             Text("\(array.count) Face(s) detected!")
-                .foregroundStyle(.green)
-                .fontWeight(.semibold)
         case .noFaceDetected:
             Text("No Face Detected :(")
-                .foregroundStyle(.orange)
         case .error(let error):
-            Text("Error: \(error)")
-                .foregroundStyle(.red)
-        }
-    }
-    
-    private func saveOverlayImage(image: UIImage, faces: [CleanFaceData]) {
-        let view = ZStack {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-            FaceLandmarkOverlay(imageSize: image.size, observations: faces)
-        }
-        .frame(width: 1024, height: 1024)
-
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = UIScreen.main.scale
-        if let result = renderer.uiImage {
-            UIImageWriteToSavedPhotosAlbum(result, nil, nil, nil)
+            Text("Error: \(error)").foregroundStyle(.red)
         }
     }
 }
