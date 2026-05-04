@@ -31,79 +31,80 @@ struct FaceScannerView: View {
                                     face: $resultFaces[idx],
                                     lineWidth: 2.0)
                             }
+                        }
+                    )
+                
+            } else {
+                VStack(spacing: 12) {
+                    Image(systemName: "photo")
+                        .font(.largeTitle)
+                    Text("Select an Image")
+                }
+                .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            statusView
+            if case .success(let faces) = viewModel.detectionState,
+               let image = viewModel.selectedImage {
+                HStack(spacing: 12) {
+                    Button {
+                        saveOverlayImage(image: image, faces: faces)
+                    } label: {
+                        Label("Download", systemImage: "arrow.down.to.line")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    NavigationLink {
+                        DrawingCanvasView(
+                            originalImage: image,
+                            faceObservations: faces
                         )
-                } else {
-                    VStack(spacing: 12) {
-                        Image(systemName: "photo")
-                            .font(.largeTitle)
-                        Text("Select an Image")
+                    } label: {
+                        Label("Draw Now!", systemImage: "paintpalette.fill")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
                     }
-                    .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                statusView
-                if case .success(let faces) = viewModel.detectionState,
-                   let image = viewModel.selectedImage {
-                    HStack(spacing: 12) {
-                        Button {
-                            saveOverlayImage(image: image, faces: faces)
-                        } label: {
-                            Label("Download", systemImage: "arrow.down.to.line")
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                        }
-                        .buttonStyle(.bordered)
-
-                        NavigationLink {
-                            DrawingCanvasView(
-                                originalImage: image,
-                                faceObservations: faces
-                            )
-                        } label: {
-                            Label("Draw Now!", systemImage: "paintpalette.fill")
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(.horizontal)
-                }
-
-                PhotosPicker(
-                    selection: $selectedItem,
-                    matching: .images,
-                    photoLibrary: .shared()
-                ) {
-                    Text("Choose Image")
-                        .font(.headline)
-                        .padding()
+                    .buttonStyle(.borderedProminent)
                 }
                 .padding(.horizontal)
-                .onChange(of: selectedItem) { _, newItem in
-                    Task {
-                        if let data = try? await newItem?.loadTransferable(type: Data.self),
-                           let uiImage = UIImage(data: data) {
-                            viewModel.processSelectedImage(uiImage)
-                        }
+            }
+            
+            PhotosPicker(
+                selection: $selectedItem,
+                matching: .images,
+                photoLibrary: .shared()
+            ) {
+                Text("Choose Image")
+                    .font(.headline)
+                    .padding()
+            }
+            .padding(.horizontal)
+            .onChange(of: selectedItem) { _, newItem in
+                Task {
+                    if let data = try? await newItem?.loadTransferable(type: Data.self),
+                       let uiImage = UIImage(data: data) {
+                        viewModel.processSelectedImage(uiImage)
                     }
                 }
             }
-            .onChange(of: viewModel.detectionState) { _, newState in
-                if case .success(let faces) = newState {
-                    resultFaces = faces
-                }
-                else {
-                    resultFaces = []
-                }
-                
-            }
-            .navigationTitle("Aesthera")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .onChange(of: viewModel.detectionState) { _, newState in
+            if case .success(let faces) = newState {
+                resultFaces = faces
+            }
+            else {
+                resultFaces = []
+            }
+            
+        }
+        .navigationTitle("Aesthera")
+        .navigationBarTitleDisplayMode(.inline)
     }
-
+    
     @ViewBuilder
     private var statusView: some View {
         switch viewModel.detectionState {
@@ -124,7 +125,7 @@ struct FaceScannerView: View {
                 .foregroundStyle(.red)
         }
     }
-
+    
     private func saveOverlayImage(image: UIImage, faces: [CleanFaceData]) {
         let view = ZStack {
             Image(uiImage: image)
