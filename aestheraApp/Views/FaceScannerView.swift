@@ -175,7 +175,7 @@ struct FaceScannerView: View {
                 resultFaces = []
             }
         }
-        .navigationTitle("Miawmiaw")
+        .navigationTitle("Aesthera")
     }
     
     @ViewBuilder
