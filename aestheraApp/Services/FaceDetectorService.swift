@@ -22,6 +22,7 @@ class FaceDetectorService {
     
     private func setupModels() {
         do {
+            
             let yoloModel = try AnimeFaceYOLO(configuration: MLModelConfiguration()).model
             let landmarkModel = try AnimeFaceLandmarks(configuration: MLModelConfiguration()).model
             
