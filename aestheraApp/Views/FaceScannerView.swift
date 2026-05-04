@@ -12,24 +12,24 @@ import PhotosUI
 struct FaceScannerView: View {
     @State private var viewModel = FaceScannerViewModel()
     @State private var selectedItem: PhotosPickerItem? = nil
-
+    @State private var resultFaces: [CleanFaceData] = []
+    
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                Spacer()
-                if let image = viewModel.selectedImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            Group {
-                                if case .success(let faces) = viewModel.detectionState {
-                                    FaceLandmarkOverlay(
-                                        imageSize: image.size,
-                                        observations: faces
-                                    )
-                                }
+        VStack(spacing: 20) {
+            Spacer()
+            
+            if let image = viewModel.selectedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        ZStack {
+                            ForEach($resultFaces.indices, id: \.self) { idx in
+                                AdjustableGuidelineOverlay(
+                                    imageSize: image.size,
+                                    face: $resultFaces[idx],
+                                    lineWidth: 2.0)
                             }
                         )
                 } else {
@@ -89,6 +89,15 @@ struct FaceScannerView: View {
                         }
                     }
                 }
+            }
+            .onChange(of: viewModel.detectionState) { _, newState in
+                if case .success(let faces) = newState {
+                    resultFaces = faces
+                }
+                else {
+                    resultFaces = []
+                }
+                
             }
             .navigationTitle("Aesthera")
             .navigationBarTitleDisplayMode(.inline)
