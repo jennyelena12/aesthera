@@ -9,12 +9,12 @@ import Foundation
 import SwiftUI
 import PhotosUI
 import PencilKit
- 
+
 struct FaceScannerView: View {
     @State private var viewModel = FaceScannerViewModel()
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var resultFaces: [CleanFaceData] = []
- 
+    
     @State private var guidelineCanvas = PKCanvasView()
     @State private var drawingCanvas = PKCanvasView()
     @State private var isDrawingMode = false
@@ -22,7 +22,9 @@ struct FaceScannerView: View {
     
     @State private var showGuidelines = true
     @State private var showDrawing = true
+    @State private var showSaveAlert = false
     
+    private let saveHelper = ImageSaveHelper()
     
     var body: some View {
         VStack(spacing: 20) {
@@ -88,39 +90,26 @@ struct FaceScannerView: View {
             }
             
             Spacer()
-
+            
             if isDrawingMode {
                 VStack {
                     HStack(spacing: 40) {
                         Button(action: { isEraser = false }) {
-                            VStack {
-                                Image(systemName: "pencil.tip")
-                                    .font(.title2)
-                                Text("Pen")
-                                    .font(.caption)
-                            }
-                            .foregroundColor(!isEraser ? .blue : .gray)
+                            toolButton(systemName: "pencil.tip", label: "Pen", isActive: !isEraser)
                         }
                         
                         Button(action: { isEraser = true }) {
-                            VStack {
-                                Image(systemName: "eraser.fill")
-                                    .font(.title2)
-                                Text("Eraser")
-                                    .font(.caption)
-                            }
-                            .foregroundColor(isEraser ? .blue : .gray)
+                            toolButton(systemName: "eraser.fill", label: "Eraser", isActive: isEraser)
                         }
                         
                         Button(action: { drawingCanvas.drawing = PKDrawing() }) {
-                            VStack {
-                                Image(systemName: "trash")
-                                    .font(.title2)
-                                Text("Clear")
-                                    .font(.caption)
-                            }
-                            .foregroundColor(.red)
+                            toolButton(systemName: "trash", label: "Clear", isActive: false, color: .red)
                         }
+                        
+                        Button(action: saveDrawingOnly) {
+                            toolButton(systemName: "square.and.arrow.down", label: "Save", isActive: false, color: .green)
+                        }
+                        
                     }
                     Divider()
                     
@@ -130,7 +119,7 @@ struct FaceScannerView: View {
                                 .font(.caption)
                         }
                         .toggleStyle(.button)
- 
+                        
                         Toggle(isOn: $showDrawing) {
                             Label("My Drawing", systemImage: "paintbrush")
                                 .font(.caption)
@@ -153,6 +142,11 @@ struct FaceScannerView: View {
                     .padding()
             }
             .padding(.horizontal)
+            .alert("Saved!", isPresented: $showSaveAlert){
+                Button("OK", role: .cancel){}
+            } message:{
+                    Text("Your drawing has been saved!")
+                }
             .onChange(of: selectedItem) { _, newItem in
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self),
@@ -161,6 +155,7 @@ struct FaceScannerView: View {
                     }
                 }
             }
+            
             .onChange(of: viewModel.detectionState) { _, newState in
                 if case .success(let faces) = newState {
                     resultFaces = faces
@@ -184,6 +179,17 @@ struct FaceScannerView: View {
     }
     
     @ViewBuilder
+    private func toolButton(systemName: String, label: String, isActive: Bool, color: Color = .blue) -> some View {
+        VStack {
+            Image(systemName: systemName)
+                .font(.title2)
+            Text(label)
+                .font(.caption)
+        }
+        .foregroundColor(isActive ? .blue : (color == .blue ? .gray : color))
+    }
+    
+    @ViewBuilder
     private var statusView: some View {
         switch viewModel.detectionState {
         case .idle:
@@ -198,4 +204,15 @@ struct FaceScannerView: View {
             Text("Error: \(error)").foregroundStyle(.red)
         }
     }
+    
+    private func saveDrawingOnly() {
+        let drawing = drawingCanvas.drawing
+        let bounds = drawingCanvas.bounds
+        let image = drawing.image(from: bounds, scale: UIScreen.main.scale)
+        saveHelper.saveImage(image){
+            showSaveAlert = true
+            
+        }
+    }
+    
 }
