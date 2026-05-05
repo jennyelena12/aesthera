@@ -11,7 +11,7 @@ import SwiftUI
 struct FaceMetrics {
     let chin, nose, leftSide, rightSide, mouth: CGPoint
     let leftEyeTop, leftEyeBottom, rightEyeTop, rightEyeBottom: CGPoint
-    
+    let leftEyeCenter, rightEyeCenter: CGPoint
     let eyeMid, cranialCenter: CGPoint
     let cranialRadius: CGFloat
     let eyeAngle: CGFloat
@@ -36,9 +36,9 @@ struct FaceMetrics {
         self.leftSide = makeCGPoint(face.leftSide)
         self.rightSide = makeCGPoint(face.rightSide)
         
-        let leftEyeCenter = CGPoint(x: avg2(leftEyeTop.x, leftEyeBottom.x),
+        self.leftEyeCenter = CGPoint(x: avg2(leftEyeTop.x, leftEyeBottom.x),
                                     y: avg2(leftEyeTop.y, leftEyeBottom.y))
-        let rightEyeCenter = CGPoint(x: avg2(rightEyeTop.x, rightEyeBottom.x),
+        self.rightEyeCenter = CGPoint(x: avg2(rightEyeTop.x, rightEyeBottom.x),
                                      y: avg2(rightEyeTop.y, rightEyeBottom.y))
         
         self.eyeMid = CGPoint(x: avg2(leftEyeCenter.x, rightEyeCenter.x),

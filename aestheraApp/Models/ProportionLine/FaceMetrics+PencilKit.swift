@@ -20,6 +20,10 @@ extension FaceMetrics {
             shapes.append(getEyeLineShape(top: x))
         }
         shapes.append(getChinLineShape())
+        shapes.append(getPointShape(leftEyeCenter))
+        shapes.append(getPointShape(rightEyeCenter))
+        shapes.append(getPointShape(mouth))
+        shapes.append(getPointShape(nose))
         
         return shapes
     }
@@ -45,5 +49,9 @@ extension FaceMetrics {
         let startPoint = CGPoint(x: chin.x - cos(eyeAngle) * 15.0, y: chin.y - sin(eyeAngle) * 15.0)
         let endPoint = CGPoint(x: chin.x + cos(eyeAngle) * 15.0, y: chin.y + sin(eyeAngle) * 15.0)
         return GuideStraightLine(startPoint: startPoint, endPoint: endPoint)
+    }
+    
+    func getPointShape(_ point: CGPoint) -> PencilKitConvertible {
+        return GuidePoint(location: point)
     }
 }
