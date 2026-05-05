@@ -17,6 +17,10 @@ struct DrawingCanvasView: UIViewRepresentable {
         canvasView.isOpaque = false
         canvasView.backgroundColor = .clear
         canvasView.drawingPolicy = .anyInput
+        
+        canvasView.minimumZoomScale = 0.5
+        canvasView.maximumZoomScale = 5
+        canvasView.bouncesZoom = true
         return canvasView
     }
 

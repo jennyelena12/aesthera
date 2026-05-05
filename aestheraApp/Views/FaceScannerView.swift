@@ -5,10 +5,17 @@
 //  Created by Xaviero Yamin Loganta on 01/05/26.
 //
 
+
 import Foundation
 import SwiftUI
 import PhotosUI
 import PencilKit
+
+extension Comparable {
+    func clamped(to limits: ClosedRange<Self>) -> Self {
+        return min(max(self, limits.lowerBound), limits.upperBound)
+    }
+}
 
 struct FaceScannerView: View {
     @State private var viewModel = FaceScannerViewModel()
@@ -19,6 +26,8 @@ struct FaceScannerView: View {
     @State private var drawingCanvas = PKCanvasView()
     @State private var isDrawingMode = false
     @State private var isEraser = false
+    @State private var currentZoomScale: CGFloat = 1.0
+    @State private var isZoomed: Bool = false
     
 //    @State private var showGuidelines = true
     @State private var showDrawing = true
@@ -55,12 +64,9 @@ struct FaceScannerView: View {
                                 )
                             }
                         }
-                        DrawingCanvasView(canvasView: $guidelineCanvas, isDrawingMode: .constant(false), isEraser: .constant(false))
-                            .allowsHitTesting(false)
+                        DrawingCanvasView(canvasView: $guidelineCanvas, isDrawingMode: .constant(false), isEraser: $isEraser)
+                            .allowsHitTesting(true)
                         
-                        DrawingCanvasView(canvasView: $drawingCanvas, isDrawingMode: $isDrawingMode, isEraser: $isEraser)
-                            .opacity(showDrawing ? 1.0 : 0.0)
-                            .allowsHitTesting(isDrawingMode)
                         
                     }
                     .overlay(alignment: .bottomTrailing) {
@@ -94,6 +100,7 @@ struct FaceScannerView: View {
             
             if isDrawingMode {
                 VStack {
+                    // Drawing Tools Stack (Pen, Eraser, Save, Trash)
                     HStack(spacing: 40) {
                         Button(action: { isEraser = false }) {
                             toolButton(systemName: "pencil.tip", label: "Pen", isActive: !isEraser)
@@ -110,10 +117,11 @@ struct FaceScannerView: View {
                         Button(action: saveDrawingOnly) {
                             toolButton(systemName: "square.and.arrow.down", label: "Save", isActive: false, color: .green)
                         }
-                        
                     }
+                    
                     Divider()
                     
+                    // View Options Stack
                     HStack(spacing: 20) {
                         Toggle(isOn: $showBaseImage) {
                             Label("Original Image", systemImage: "face.dashed")
@@ -163,6 +171,7 @@ struct FaceScannerView: View {
                 resultFaces = faces
                 guidelineCanvas.drawing = PKDrawing()
                 drawingCanvas.drawing = PKDrawing()
+                guidelineCanvas.setZoomScale(1.0, animated: false)
                 isDrawingMode = false
             } else {
                 resultFaces = []
@@ -221,4 +230,20 @@ struct FaceScannerView: View {
         }
     }
     
+    private func zoom(by factor: CGFloat) {
+        let newScale = (guidelineCanvas.zoomScale * factor)
+            .clamped(to: guidelineCanvas.minimumZoomScale...guidelineCanvas.maximumZoomScale)
+        guidelineCanvas.setZoomScale(newScale, animated: true)
+        currentZoomScale = newScale
+        isZoomed = newScale > 1.0
+    }
+    
+    private func resetZoom() {
+        guidelineCanvas.setZoomScale(1.0, animated: true)
+        currentZoomScale = 1.0
+        isZoomed = false
+    }
+    
 }
+
+
