@@ -101,7 +101,7 @@ struct FaceScannerView: View {
             }
             
         }
-        .navigationTitle("Aesthera")
+        .navigationTitle("New Scan")
         .navigationBarTitleDisplayMode(.inline)
     }
     
@@ -142,3 +142,10 @@ struct FaceScannerView: View {
         }
     }
 }
+
+
+
+#Preview {
+    FaceScannerView()
+}
+
