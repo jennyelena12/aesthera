@@ -2,22 +2,21 @@
 //  HomeView.swift
 //  aestheraApp
 //
+//  Created by Jesslyn Trixie Edvilie on 04/05/26.
+//
 
 import SwiftUI
 
 struct HomeView: View {
 
     @State private var showGallerySheet = false
-
-    // The "+" sheet uses its own NavigationStack and so needs its own
-    // AppRouter — sheets don't share navigation state with the parent tab.
+    
     @State private var sheetRouter = AppRouter()
 
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
 
-            // --- Brand block ---
             VStack(spacing: 8) {
                 Image(systemName: "face.smiling")
                     .font(.system(size: 64))
@@ -37,8 +36,6 @@ struct HomeView: View {
             Spacer()
 
             // --- Primary actions ---
-            // NavigationLink(value:) pushes a Route onto the home stack's
-            // path; destinations are registered once in MainTabView.
             VStack(spacing: 12) {
 
                 NavigationLink(value: AppRouter.Route.curatedReferences) {
@@ -63,7 +60,6 @@ struct HomeView: View {
         .navigationTitle("Home")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // PRD: "+" button spawns the gallery sheet.
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showGallerySheet = true
@@ -73,7 +69,6 @@ struct HomeView: View {
                 }
             }
         }
-        // The sheet has its OWN NavigationStack and OWN router instance.
         .sheet(isPresented: $showGallerySheet) {
             NavigationStack(path: $sheetRouter.path) {
                 SheetGalleryView()
@@ -90,8 +85,6 @@ struct HomeView: View {
         }
     }
 
-    /// Routes resolvable inside the "+" sheet stack.
-    /// Subset of the home tab's routes — only ones the sheet flow uses.
     @ViewBuilder
     private func sheetDestination(for route: AppRouter.Route) -> some View {
         switch route {

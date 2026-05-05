@@ -2,20 +2,20 @@
 //  SplashView.swift
 //  aestheraApp
 //
+//  Created by Jesslyn Trixie Edvilie on 04/05/26.
+//
 
 import SwiftUI
 
 struct SplashView: View {
     var onStart: () -> Void
 
-    // TODO: Replace with final brand assets from Figma
     var body: some View {
         ZStack {
             Color(.systemBackground)
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                // TODO: Replace with app logo from Figma
                 Image(systemName: "sparkles")
                     .font(.system(size: 60))
                     .foregroundStyle(.primary)

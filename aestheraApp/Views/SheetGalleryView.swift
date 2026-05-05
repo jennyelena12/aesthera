@@ -2,12 +2,12 @@
 //  SheetGalleryView.swift
 //  aestheraApp
 //
+//  Created by Jesslyn Trixie Edvilie on 04/05/26.
+//
 
 import SwiftUI
 import PhotosUI
 
-// SheetGalleryView is the root of the "+" sheet's NavigationStack.
-// It hands off to AppRouter on photo selection, just like CuratedReferencesView does.
 
 struct SheetGalleryView: View {
 
@@ -15,9 +15,7 @@ struct SheetGalleryView: View {
 
     @State private var selectedItem: PhotosPickerItem? = nil
 
-    // TODO: Replace with real 3x3 clickable photo grid from Figma
-    // TODO: Add notification banner — "only face photos with visible details"
-    //       auto-closes after 10s
+
 
     var body: some View {
         VStack(spacing: 24) {
@@ -31,7 +29,6 @@ struct SheetGalleryView: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
 
-            // Temporary: plain PhotosPicker until the 3x3 grid is designed.
             PhotosPicker(
                 selection: $selectedItem,
                 matching: .images,
@@ -48,15 +45,13 @@ struct SheetGalleryView: View {
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
-                        // Hand off to the router. The sheet's stack handles
-                        // the rest (loading → result/fail → canvas).
                         router.startScan(with: uiImage)
-                        selectedItem = nil // reset so the same image can be picked again
+                        selectedItem = nil
                     }
                 }
             }
 
-            // Camera entry point — pushes the camera screen as a route.
+
             NavigationLink(value: AppRouter.Route.camera) {
                 Label("Use Camera", systemImage: "camera.fill")
                     .font(.headline)
