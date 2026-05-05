@@ -9,9 +9,20 @@ import SwiftUI
 
 @main
 struct aestheraAppApp: App {
+
+    @State private var showSplash = true
+
     var body: some Scene {
         WindowGroup {
-            FaceScannerView()
+            if showSplash {
+                SplashView(onStart: { withAnimation(.easeInOut(duration: 0.4)) { showSplash = false } })
+                    .onAppear {
+                                showSplash = false
+                            }
+            }
+            else {
+                MainTabView()
+            }
         }
     }
 }
