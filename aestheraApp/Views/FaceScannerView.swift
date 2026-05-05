@@ -20,8 +20,9 @@ struct FaceScannerView: View {
     @State private var isDrawingMode = false
     @State private var isEraser = false
     
-    @State private var showGuidelines = true
+//    @State private var showGuidelines = true
     @State private var showDrawing = true
+    @State private var showBaseImage = true
     @State private var showSaveAlert = false
     
     private let saveHelper = ImageSaveHelper()
@@ -43,6 +44,7 @@ struct FaceScannerView: View {
                             .resizable()
                             .scaledToFit()
                             .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .opacity(showBaseImage ? 1.0 : 0.0)
                         
                         if !isDrawingMode {
                             ForEach($resultFaces.indices, id: \.self) { index in
@@ -54,7 +56,6 @@ struct FaceScannerView: View {
                             }
                         }
                         DrawingCanvasView(canvasView: $guidelineCanvas, isDrawingMode: .constant(false), isEraser: .constant(false))
-                            .opacity(showGuidelines ? 1.0 : 0.0)
                             .allowsHitTesting(false)
                         
                         DrawingCanvasView(canvasView: $drawingCanvas, isDrawingMode: $isDrawingMode, isEraser: $isEraser)
@@ -114,8 +115,8 @@ struct FaceScannerView: View {
                     Divider()
                     
                     HStack(spacing: 20) {
-                        Toggle(isOn: $showGuidelines) {
-                            Label("Guidelines", systemImage: "face.dashed")
+                        Toggle(isOn: $showBaseImage) {
+                            Label("Original Image", systemImage: "face.dashed")
                                 .font(.caption)
                         }
                         .toggleStyle(.button)
@@ -153,18 +154,6 @@ struct FaceScannerView: View {
                        let uiImage = UIImage(data: data) {
                         viewModel.processSelectedImage(uiImage)
                     }
-                }
-            }
-            
-            .onChange(of: viewModel.detectionState) { _, newState in
-                switch newState {
-                case .success(let faces):
-                    resultFaces = faces
-                    guidelineCanvas.drawing = PKDrawing()
-                    drawingCanvas.drawing = PKDrawing()
-                    isDrawingMode = false
-                default:
-                    resultFaces = []
                 }
             }
             
@@ -212,10 +201,23 @@ struct FaceScannerView: View {
     private func saveDrawingOnly() {
         let drawing = drawingCanvas.drawing
         let bounds = drawingCanvas.bounds
-        let image = drawing.image(from: bounds, scale: UIScreen.main.scale)
-        saveHelper.saveImage(image){
-            showSaveAlert = true
-            
+        
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = UIScreen.main.scale
+        let renderer = UIGraphicsImageRenderer(bounds: bounds, format: format)
+        
+        let finalImage = renderer.image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(bounds)
+            let drawingImage = drawing.image(from: bounds, scale: UIScreen.main.scale)
+            drawingImage.draw(in: bounds)
+        }
+        
+        if let jpgData = finalImage.jpegData(compressionQuality: 1.0),
+           let jpgImage = UIImage(data: jpgData) {
+            saveHelper.saveImage(jpgImage) {
+                showSaveAlert = true
+            }
         }
     }
     
