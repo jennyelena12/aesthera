@@ -9,16 +9,21 @@ import SwiftUI
 import PencilKit
 
 struct PKCanvasRepresentable: UIViewRepresentable {
-    
+
     @Binding var canvasView: PKCanvasView
     let tool: DrawingTool
     let lineWidth: CGFloat
 
     func makeUIView(context: Context) -> PKCanvasView {
         canvasView.backgroundColor = .clear
-        canvasView.isOpaque = false
-        canvasView.drawingPolicy = .anyInput
+        canvasView.isOpaque        = false
+        canvasView.drawingPolicy   = .anyInput
         canvasView.overrideUserInterfaceStyle = .light
+
+        canvasView.isScrollEnabled = false
+        canvasView.contentInset    = .zero
+        canvasView.contentOffset   = .zero
+
         return canvasView
     }
 
@@ -45,6 +50,8 @@ struct DrawingCanvasView: View {
     @State private var showGuides       = true
     @State private var showSaveAlert    = false
 
+    @State private var zoomScale     : CGFloat = 1.0
+    @State private var baseZoomScale : CGFloat = 1.0
     private var thickness: CGFloat { selectedTool == .pen ? penThickness : eraserThickness }
 
     var body: some View {
@@ -65,8 +72,9 @@ struct DrawingCanvasView: View {
 
     private var canvasWithTools: some View {
         GeometryReader { geo in
+            let imageAspect = originalImage.size.height / originalImage.size.width
             let width = geo.size.width
-            let height = width * 1.3
+            let height = width * imageAspect
 
             ZStack {
                 canvasLayers
@@ -99,10 +107,28 @@ struct DrawingCanvasView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             if showGuides {
-                FaceLandmarkOverlay(imageSize: originalImage.size, observations: faceObservations)
+                FaceLandmarkOverlay(
+                    imageSize: originalImage.size,
+                    observations: faceObservations
+                )
             }
-            PKCanvasRepresentable(canvasView: $canvasView, tool: selectedTool, lineWidth: thickness)
+            PKCanvasRepresentable(
+                canvasView: $canvasView,
+                tool: selectedTool,
+                lineWidth: thickness
+            )
         }
+        .scaleEffect(zoomScale)
+        .simultaneousGesture(
+            MagnificationGesture()
+                .onChanged { value in
+                    let proposed = baseZoomScale * value
+                    zoomScale = min(max(proposed, 0.5), 4.0)
+                }
+                .onEnded { _ in
+                    baseZoomScale = zoomScale
+                }
+        )
     }
 
     @ViewBuilder
@@ -173,25 +199,38 @@ struct DrawingCanvasView: View {
     }
 
     private func saveToPhotos() {
-        let renderer = ImageRenderer(content: exportView)
-        renderer.scale = UIScreen.main.scale
-        if let image = renderer.uiImage {
-            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-            showSaveAlert = true
+        let size = originalImage.size
+        let renderer = UIGraphicsImageRenderer(size: size)
+
+        let canvasBounds = canvasView.bounds
+            
+            let exported = renderer.image { ctx in
+                UIColor.white.setFill()
+                ctx.fill(CGRect(origin: .zero, size: size))
+                if showImage {
+                    originalImage.draw(in: CGRect(origin: .zero, size: size))
+                }
+            if showGuides {
+                let guideView = FaceLandmarkOverlay(
+                    imageSize: size,
+                    observations: faceObservations
+                )
+                .frame(width: size.width, height: size.height)
+                let guideRenderer = ImageRenderer(content: guideView)
+                guideRenderer.proposedSize = .init(width: size.width, height: size.height)
+                guideRenderer.scale = 1
+                guideRenderer.uiImage?.draw(in: CGRect(origin: .zero, size: size))
+            }
+
+                let drawingImage = canvasView.drawing.image(
+                            from: canvasBounds,
+                            scale: size.width / canvasBounds.width
+                        )
+                drawingImage.draw(in: CGRect(origin: .zero, size: size))
         }
+
+        UIImageWriteToSavedPhotosAlbum(exported, nil, nil, nil)
+        showSaveAlert = true
     }
 
-    private var exportView: some View {
-        ZStack {
-            Color.white
-            if showImage { Image(uiImage: originalImage).resizable().scaledToFit() }
-            if showGuides {
-                FaceLandmarkOverlay(imageSize: originalImage.size, observations: faceObservations)
-            }
-            Image(uiImage: canvasView.drawing.image(
-                from: canvasView.drawing.bounds, scale: UIScreen.main.scale)
-            ).resizable().scaledToFit()
-        }
-        .frame(width: 1024, height: 1024)
-    }
 }
