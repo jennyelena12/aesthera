@@ -40,13 +40,6 @@ struct HomeView: View {
             // NavigationLink(value:) pushes a Route onto the home stack's
             // path; destinations are registered once in MainTabView.
             VStack(spacing: 12) {
-                NavigationLink(value: AppRouter.Route.faceScanner) {
-                    Text("New Scan")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                }
-                .buttonStyle(.borderedProminent)
 
                 NavigationLink(value: AppRouter.Route.curatedReferences) {
                     Text("Curated References")

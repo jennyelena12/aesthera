@@ -15,15 +15,12 @@ struct aestheraAppApp: App {
     var body: some Scene {
         WindowGroup {
             if showSplash {
-                SplashView()
+                SplashView(onStart: { withAnimation(.easeInOut(duration: 0.4)) { showSplash = false } })
                     .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            withAnimation(.easeInOut(duration: 0.4)) {
                                 showSplash = false
                             }
-                        }
-                    }
-            } else {
+            }
+            else {
                 MainTabView()
             }
         }

@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct SplashView: View {
+    var onStart: () -> Void
 
     // TODO: Replace with final brand assets from Figma
     var body: some View {
@@ -22,11 +23,15 @@ struct SplashView: View {
                 Text("aesthera")
                     .font(.largeTitle.weight(.semibold))
                     .tracking(4)
+                
+                Button("Start") {
+                    onStart()
+                }
             }
         }
     }
 }
 
 #Preview {
-    SplashView()
+    SplashView(onStart: {})
 }

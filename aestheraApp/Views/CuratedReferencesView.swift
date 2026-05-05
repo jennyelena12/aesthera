@@ -136,6 +136,7 @@ struct CuratedReferencesView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color(.secondarySystemBackground))
+                .frame(width: 150, height: 150)
 
             if let img = UIImage(named: ref.assetName) {
                 Image(uiImage: img)
