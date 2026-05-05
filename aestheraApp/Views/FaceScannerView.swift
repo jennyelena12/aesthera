@@ -157,9 +157,13 @@ struct FaceScannerView: View {
             }
             
             .onChange(of: viewModel.detectionState) { _, newState in
-                if case .success(let faces) = newState {
+                switch newState {
+                case .success(let faces):
                     resultFaces = faces
-                } else {
+                    guidelineCanvas.drawing = PKDrawing()
+                    drawingCanvas.drawing = PKDrawing()
+                    isDrawingMode = false
+                default:
                     resultFaces = []
                 }
             }
