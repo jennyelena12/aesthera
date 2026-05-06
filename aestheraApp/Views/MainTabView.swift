@@ -2,15 +2,11 @@
 //  MainTabView.swift
 //  aestheraApp
 //
+//  Created by Jesslyn Trixie Edvilie on 04/05/26.
+//
 
 import SwiftUI
 
-// Each tab gets its own NavigationStack and its own AppRouter, so
-// navigation state is independent across tabs. The "+" sheet (presented
-// from HomeView) gets a third router — see HomeView for that.
-//
-// Destination wrappers (LoadingViewHost, ResultViewHost, etc.) live in
-// RouteHosts.swift so HomeView's sheet stack can reuse them.
 
 struct MainTabView: View {
 

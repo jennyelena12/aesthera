@@ -2,23 +2,12 @@
 //  ResultView.swift
 //  aestheraApp
 //
+//  Created by Jesslyn Trixie Edvilie on 04/05/26.
+//
 
 import SwiftUI
+import Photos
 
-// PRD coverage (MVP):
-//   ✓ Proportion lines overlay     → AdjustableGuidelineOverlay
-//   ✓ Opacity slider               → lineOpacity
-//   ✓ On/Off low-opacity reference → lowOpacityReference
-//   ✓ Download button              → saveOverlayImage()
-//   ✓ Draw on Canvas button        → router.openCanvas()
-//
-// Stage 2:
-//   - Custom toolbar with tutorial button
-//   - Final Figma styling
-//
-// Layout is intentionally plain — once the Figma is locked, the visual
-// swap is mostly Stack restructuring + asset replacement. Logic and
-// bindings here should NOT need to change.
 
 struct ResultView: View {
 
@@ -27,18 +16,15 @@ struct ResultView: View {
 
     @Environment(AppRouter.self) private var router
 
-    // The faces are kept as @State so the AdjustableGuidelineOverlay
-    // can mutate them via @Binding (drag the orange anchor nodes around).
-    // We seed this from the `faces` argument in .onAppear.
     @State private var resultFaces: [CleanFaceData] = []
 
-    // Opacity slider value for the proportion lines (0 = invisible, 1 = solid).
+
     @State private var lineOpacity: Double = 1.0
 
-    // When ON, the underlying photo is dimmed so the proportion lines pop.
+
     @State private var lowOpacityReference: Bool = false
 
-    // Confirmation alert after the Download button saves to Photos.
+
     @State private var showSavedAlert = false
 
     var body: some View {
@@ -62,9 +48,6 @@ struct ResultView: View {
         .navigationTitle("Result")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            // Copy the detected faces into mutable state once.
-            // (We don't overwrite on every appear — the user may have
-            // already nudged anchor nodes and we don't want to reset them.)
             if resultFaces.isEmpty {
                 resultFaces = faces
             }
@@ -84,8 +67,6 @@ struct ResultView: View {
                 .opacity(lowOpacityReference ? 0.3 : 1.0)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            // One overlay per detected face. .opacity() applied here
-            // tints all the proportion lines AND the draggable nodes.
             ForEach($resultFaces.indices, id: \.self) { idx in
                 AdjustableGuidelineOverlay(
                     imageSize: image.size,
@@ -100,7 +81,6 @@ struct ResultView: View {
     private var controls: some View {
         VStack(alignment: .leading, spacing: 14) {
 
-            // Opacity slider
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("Line Opacity")
@@ -113,7 +93,6 @@ struct ResultView: View {
                 Slider(value: $lineOpacity, in: 0...1)
             }
 
-            // On/Off low-opacity reference toggle
             Toggle("Dim reference photo", isOn: $lowOpacityReference)
                 .font(.subheadline)
         }
@@ -123,8 +102,17 @@ struct ResultView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 12) {
-            Button {
-                saveOverlayImage()
+            Menu {
+                Button {
+                    saveOverlayImage()
+                } label: {
+                    Label("With photo (JPEG)", systemImage: "photo")
+                }
+                Button {
+                    saveLinesOnlyAsPNG()
+                } label: {
+                    Label("Lines only (transparent PNG)", systemImage: "scribble.variable")
+                }
             } label: {
                 Label("Download", systemImage: "arrow.down.to.line")
                     .frame(maxWidth: .infinity)
@@ -132,9 +120,7 @@ struct ResultView: View {
             }
             .buttonStyle(.bordered)
 
-            // IMPORTANT: copy adjusted faces back onto the router before
-            // pushing canvas, so DrawingCanvasView gets the user's tweaked
-            // anchor positions, not the originally-detected ones.
+            // IMPORTANT: copy adjusted faces back onto the router before pushing canvas, so DrawingCanvasView gets the user's tweaked anchor positions, not the originally-detected ones.
             Button {
                 router.detectedFaces = resultFaces
                 router.openCanvas()
@@ -149,13 +135,9 @@ struct ResultView: View {
 
     // MARK: - Save logic
 
-    // Renders the current view (image + proportion overlay, respecting
-    // the opacity slider and dim-reference toggle) to a UIImage and
-    // writes it to the user's Photos library.
-    //
-    // We use FaceLandmarkOverlay here (not AdjustableGuidelineOverlay)
-    // because it draws cleanly without the orange draggable nodes,
-    // which the user does not want baked into a saved image.
+    /// Mode A — composite of dimmed photo + lines, baked onto a white
+    /// background, saved as JPEG via UIImageWriteToSavedPhotosAlbum.
+    /// Useful when the user wants a single self-contained reference image.
     private func saveOverlayImage() {
         let exportView = ZStack {
             Color.white
@@ -176,6 +158,54 @@ struct ResultView: View {
         if let result = renderer.uiImage {
             UIImageWriteToSavedPhotosAlbum(result, nil, nil, nil)
             showSavedAlert = true
+        }
+    }
+
+    /// Mode B — overlay strokes only, on a transparent background,
+    /// saved as PNG. Rendered at the original image's pixel dimensions
+    /// so the user can drop this PNG on top of the source photo in any
+    /// image editor and the lines line up 1:1.
+    ///
+    /// We can't use UIImageWriteToSavedPhotosAlbum here — that helper
+    /// flattens alpha and would bake whatever's behind the image (often
+    /// black) into the saved file. PHPhotoLibrary lets us write raw PNG
+    /// data so the alpha channel is preserved.
+    private func saveLinesOnlyAsPNG() {
+        let exportView = FaceLandmarkOverlay(
+            imageSize: image.size,
+            observations: resultFaces
+        )
+        .opacity(lineOpacity)
+        .frame(width: image.size.width, height: image.size.height)
+
+        let renderer = ImageRenderer(content: exportView)
+        // We're already requesting the frame at native pixel size, so
+        // scale = 1 keeps the output at exactly image.size pixels.
+        renderer.scale = 1
+
+        guard let uiImage = renderer.uiImage,
+              let pngData = uiImage.pngData() else {
+            return
+        }
+
+        savePNGToPhotos(pngData)
+    }
+
+    /// Writes raw PNG bytes (alpha intact) to the user's Photos library.
+    /// Requires NSPhotoLibraryAddUsageDescription in Info.plist.
+    private func savePNGToPhotos(_ data: Data) {
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+            guard status == .authorized || status == .limited else { return }
+            PHPhotoLibrary.shared().performChanges {
+                let request = PHAssetCreationRequest.forAsset()
+                request.addResource(with: .photo, data: data, options: nil)
+            } completionHandler: { success, _ in
+                if success {
+                    DispatchQueue.main.async {
+                        showSavedAlert = true
+                    }
+                }
+            }
         }
     }
 }
