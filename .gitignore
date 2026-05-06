@@ -66,4 +66,4 @@ fastlane/test_output
 *.mlmodel/
 *.mlmodelc/
 
-*.DS_STORE
+*.DS_Store
