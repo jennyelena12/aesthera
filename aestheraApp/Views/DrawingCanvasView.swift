@@ -155,11 +155,13 @@ struct DrawingCanvasView: View {
                 Text("\(Int(thickness)) pt")
                     .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
-            if selectedTool == .pen {
-                Slider(value: $penThickness, in: 1...30, step: 1).tint(.black)
-            } else {
-                Slider(value: $eraserThickness, in: 5...60, step: 1).tint(.gray)
-            }
+            let isPen = selectedTool == .pen
+            Slider(value: isPen ? $penThickness : $eraserThickness, in: isPen ? 1...30 : 5...60 , step: 1).tint(isPen ? .black : .gray)
+//            if selectedTool == .pen {
+//                Slider(value: $penThickness, in: 1...30, step: 1).tint(.black)
+//            } else {
+//                Slider(value: $eraserThickness, in: 5...60, step: 1).tint(.gray)
+//            }
         }
         .padding(12)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))

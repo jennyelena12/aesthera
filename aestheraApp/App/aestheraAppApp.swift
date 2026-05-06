@@ -4,7 +4,7 @@
 //
 //  Created by Elena Nathanielle on 01/05/26.
 //
-
+import SwiftData
 import SwiftUI
 
 @main
@@ -24,5 +24,6 @@ struct aestheraAppApp: App {
                 MainTabView()
             }
         }
+        .modelContainer(for: SavedScan.self)
     }
 }

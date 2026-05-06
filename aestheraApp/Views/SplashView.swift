@@ -20,7 +20,7 @@ struct SplashView: View {
                     .font(.system(size: 60))
                     .foregroundStyle(.primary)
 
-                Text("aesthera")
+                Text("PropPotion")
                     .font(.largeTitle.weight(.semibold))
                     .tracking(4)
                 

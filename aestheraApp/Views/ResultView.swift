@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Photos
+import SwiftData
 
 
 struct ResultView: View {
@@ -26,6 +27,10 @@ struct ResultView: View {
 
 
     @State private var showSavedAlert = false
+    
+    @Environment(\.modelContext) private var modelContext
+    
+    @State private var showSaveConfirmation = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -53,6 +58,9 @@ struct ResultView: View {
             }
         }
         .alert("Saved to Photos!", isPresented: $showSavedAlert) {
+            Button("OK") {}
+        }
+        .alert("Saved to My Works", isPresented: $showSaveConfirmation) {
             Button("OK") {}
         }
     }
@@ -130,6 +138,15 @@ struct ResultView: View {
                     .padding(.vertical, 14)
             }
             .buttonStyle(.borderedProminent)
+            
+            Button {
+                saveToWorks()
+            } label: {
+                Label("Save", systemImage: "bookmark")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.bordered)
         }
     }
 
@@ -160,16 +177,20 @@ struct ResultView: View {
             showSavedAlert = true
         }
     }
+    
+    private func saveToWorks() {
+        let store = SavedScanStore(context: modelContext)
+        let saved = store.save(
+            image: image,
+            faces: resultFaces,
+            source: "scan"   // change to "camera" / "library" / "curated" later if you track it
+        )
+        if saved != nil {
+            showSaveConfirmation = true
+        }
+    }
 
-    /// Mode B — overlay strokes only, on a transparent background,
-    /// saved as PNG. Rendered at the original image's pixel dimensions
-    /// so the user can drop this PNG on top of the source photo in any
-    /// image editor and the lines line up 1:1.
-    ///
-    /// We can't use UIImageWriteToSavedPhotosAlbum here — that helper
-    /// flattens alpha and would bake whatever's behind the image (often
-    /// black) into the saved file. PHPhotoLibrary lets us write raw PNG
-    /// data so the alpha channel is preserved.
+
     private func saveLinesOnlyAsPNG() {
         let exportView = FaceLandmarkOverlay(
             imageSize: image.size,
@@ -179,8 +200,6 @@ struct ResultView: View {
         .frame(width: image.size.width, height: image.size.height)
 
         let renderer = ImageRenderer(content: exportView)
-        // We're already requesting the frame at native pixel size, so
-        // scale = 1 keeps the output at exactly image.size pixels.
         renderer.scale = 1
 
         guard let uiImage = renderer.uiImage,
@@ -191,8 +210,7 @@ struct ResultView: View {
         savePNGToPhotos(pngData)
     }
 
-    /// Writes raw PNG bytes (alpha intact) to the user's Photos library.
-    /// Requires NSPhotoLibraryAddUsageDescription in Info.plist.
+
     private func savePNGToPhotos(_ data: Data) {
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
             guard status == .authorized || status == .limited else { return }
@@ -212,7 +230,6 @@ struct ResultView: View {
 
 #Preview {
     NavigationStack {
-        // Preview won't have real face data, but this lets us see the layout shell.
         ResultView(
             image: UIImage(systemName: "person.crop.square") ?? UIImage(),
             faces: []
