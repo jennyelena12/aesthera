@@ -18,7 +18,7 @@ extension Color {
     // ---- Surfaces ----
 
     /// App background. The warm off-white behind everything.
-    static let appBackground       = Color(hex: 0xF5F4ED)
+    static let appBackground       = Color.white
 
     /// Plain white card surface (used for reference tiles).
     static let cardSurface         = Color.white
@@ -47,8 +47,7 @@ extension Color {
     // ---- Chip backgrounds ----
 
     /// Inactive chip pill background (Anime / Manga / SemiRealist / Realist).
-    static let chipInactiveBg      = Color(hex: 0xECEAE0)
-
+    static let chipInactiveBg      = Color(uiColor: .systemGray6)
     /// Active chip pill background (matches brandNavy).
     static let chipActiveBg        = Color.brandNavy
 

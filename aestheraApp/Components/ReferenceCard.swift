@@ -20,24 +20,22 @@ import SwiftUI
 
 
 struct ReferenceCard: View {
-
-    // MARK: - Inputs
-
     let imageName: String
     let placeholderSymbol: String?
     let title: String
     let categoryLabel: String
     let categoryColor: Color
-
-
-    // MARK: - Body
+    
+    // Set your "Golden Numbers" here
+    private let cardWidth: CGFloat = 160
+    private let imageHeight: CGFloat = 120
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
-
+            
+            // FORCED IMAGE SIZE
             imageArea
-                .aspectRatio(1, contentMode: .fit)        // square — uniform across cards
-                .frame(maxWidth: .infinity)
+                .frame(width: cardWidth, height: imageHeight)
                 .clipShape(RoundedRectangle(cornerRadius: Radius.image, style: .continuous))
 
             Text(title)
@@ -51,16 +49,14 @@ struct ReferenceCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(Spacing.m)
-        .frame(maxWidth: .infinity)
+        // FORCED CARD WIDTH
+        .frame(width: cardWidth + 24) // adding padding to the total width
         .background(
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .fill(Color.cardSurface)
         )
         .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 2)
     }
-
-
-    // MARK: - Image area
 
     private var imageArea: some View {
         ZStack {
@@ -69,14 +65,15 @@ struct ReferenceCard: View {
             if let img = UIImage(named: imageName) {
                 Image(uiImage: img)
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFill() // This forces the crop you want
+                    .frame(width: cardWidth, height: imageHeight)
             } else if let symbol = placeholderSymbol {
                 Image(systemName: symbol)
                     .font(.system(size: 40))
                     .foregroundStyle(.secondary)
             }
         }
-        .clipped()                                        // contain .scaledToFill overflow
+        .clipped() // Cuts off the image parts that leak out
     }
 }
 

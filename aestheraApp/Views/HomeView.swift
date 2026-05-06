@@ -133,6 +133,17 @@ struct HomeView: View {
         ZStack {
             Color.appBackground.ignoresSafeArea()
 
+            // ── Decorative background asset — top-left corner, "/" diagonal ──
+            GeometryReader { geo in
+                Image("homeview_asset")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: geo.size.width * 0.55)
+                    .rotationEffect(.degrees(35), anchor: .center)
+                    .offset(x: -geo.size.width * 0.18, y: -geo.size.height * 0.08)
+            }
+            .ignoresSafeArea()
+
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
 
