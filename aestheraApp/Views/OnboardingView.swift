@@ -44,74 +44,73 @@ struct OnboardingPageView: View {
     let onFinish: () -> Void
     
     var body: some View {
-        ZStack {
-            // Background Image
-            Image(page.image)
-                .resizable()
-                .scaledToFill()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        VStack {
+            Spacer()
 
-            // Overlay (biar text kebaca)
-            Color.black.opacity(0.3)
+            VStack(spacing: 22) {
+                Image(page.tutimage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 210, height: 210)
+                    .clipShape(Capsule())
+                Text(page.title)
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                Text(page.subtitle)
+                    .font(.body)
+                    .foregroundColor(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+            }
 
-            VStack {
+            Spacer()
+
+            HStack {
                 Spacer()
 
-                VStack(spacing: 22) {
-                    Image(page.tutimage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 210, height: 210)
-                        .clipShape(Capsule())
-                    Text(page.title)
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                    Text(page.subtitle)
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.8))
-                        .multilineTextAlignment(.center)
+                Button(action: onFinish) {
+                    Text(page.buttonText)
+                        .foregroundColor(.green)
+                        .fontWeight(.medium)
                 }
-
-                Spacer()
-
-                HStack {
-                    Spacer()
-
-                    Button(action: onFinish) {
-                        Text(page.buttonText)
-                            .foregroundColor(.green)
-                            .fontWeight(.medium)
-                    }
-                    .padding(.trailing, 24)
-                    .padding(.bottom, 40)
-                }
+                .padding(.trailing, 24)
+                .padding(.bottom, 40)
             }
             .padding(.bottom, 60)
         }
-        .ignoresSafeArea()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
 }
 
 struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        TabView {
-            ForEach(pages.indices, id: \.self) { index in
-                OnboardingPageView(page: pages[index]) {
-                    dismiss()
+        ZStack {
+            Image("bg1")
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Color.black.opacity(0.3)
+
+            TabView {
+                ForEach(pages.indices, id: \.self) { index in
+                    OnboardingPageView(page: pages[index]) {
+                        dismiss()
+                    }
                 }
             }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
         }
-        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
         .navigationBarHidden(true)
         .ignoresSafeArea()
     }
 }
 
-
 #Preview {
     OnboardingView()
 }
+
+
+
