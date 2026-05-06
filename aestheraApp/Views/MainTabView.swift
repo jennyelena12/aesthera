@@ -102,14 +102,7 @@ private struct FloatingTabBar: View {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: "bookmark.fill")
                         .font(.system(size: 22, weight: selected == .myWorks ? .bold : .medium))
-                    Image(systemName: "bookmark.fill")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(
-                            selected == .myWorks
-                                ? Color.white.opacity(0.90)
-                                : Color.textPrimary.opacity(0.55)
-                        )
-                        .offset(x: 4, y: -4)
+    
                 }
             }
         }
