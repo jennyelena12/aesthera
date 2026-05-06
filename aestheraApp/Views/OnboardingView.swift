@@ -41,6 +41,7 @@ let pages = [
 
 struct OnboardingPageView: View {
     let page: OnboardingPage
+    let onFinish: () -> Void
     
     var body: some View {
         ZStack {
@@ -48,15 +49,14 @@ struct OnboardingPageView: View {
             Image(page.image)
                 .resizable()
                 .scaledToFill()
-                .ignoresSafeArea()
-            
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
             // Overlay (biar text kebaca)
             Color.black.opacity(0.3)
-                .ignoresSafeArea()
-            
+
             VStack {
                 Spacer()
-                
+
                 VStack(spacing: 22) {
                     Image(page.tutimage)
                         .resizable()
@@ -72,15 +72,13 @@ struct OnboardingPageView: View {
                         .foregroundColor(.white.opacity(0.8))
                         .multilineTextAlignment(.center)
                 }
-                
+
                 Spacer()
-                    
+
                 HStack {
                     Spacer()
-                    
-                    NavigationLink {
-//                        ContentView()
-                    } label: {
+
+                    Button(action: onFinish) {
                         Text(page.buttonText)
                             .foregroundColor(.green)
                             .fontWeight(.medium)
@@ -88,22 +86,28 @@ struct OnboardingPageView: View {
                     .padding(.trailing, 24)
                     .padding(.bottom, 40)
                 }
-            }.padding(.bottom, 60)
+            }
+            .padding(.bottom, 60)
         }
+        .ignoresSafeArea()
     }
     
 }
 
 struct OnboardingView: View {
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        NavigationStack {
-            TabView {
-                ForEach(pages.indices, id: \.self) { index in
-                    OnboardingPageView(page: pages[index])
+        TabView {
+            ForEach(pages.indices, id: \.self) { index in
+                OnboardingPageView(page: pages[index]) {
+                    dismiss()
                 }
             }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
         }
+        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
+        .navigationBarHidden(true)
+        .ignoresSafeArea()
     }
 }
 

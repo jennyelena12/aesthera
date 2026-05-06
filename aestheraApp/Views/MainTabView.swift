@@ -84,7 +84,7 @@ struct MainTabView: View {
         switch route {
         case .faceScanner:        FaceScannerView()
         case .curatedReferences:  CuratedReferencesView()
-        case .tutorial:           TutorialView()
+        case .tutorial:           OnboardingView()
         case .sheetGallery:       SheetGalleryView()
         case .camera:             CameraView()
         case .loading:            LoadingViewHost()
