@@ -11,23 +11,51 @@ struct SplashView: View {
     var onStart: () -> Void
 
     var body: some View {
-        ZStack {
-            Color(.systemBackground)
-                .ignoresSafeArea()
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let safeInsets = proxy.safeAreaInsets
 
-            VStack(spacing: 16) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.primary)
+            ZStack {
+                Color(.systemBackground)
+                    .ignoresSafeArea()
 
-                Text("PropPotion")
-                    .font(.largeTitle.weight(.semibold))
-                    .tracking(4)
-                
-                Button("Start") {
-                    onStart()
+                Image("splashtopcorner")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: width * 1)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(.top, -safeInsets.top)
+                    .padding(.leading, -safeInsets.leading)
+
+                Image("splashmid")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: width * 1)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .padding(.bottom, -safeInsets.bottom)
+                    .padding(.trailing, -safeInsets.trailing)
+
+                VStack(spacing: width * 0.08) {
+                    Image("splashtitle")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: width * 0.8)
+
+                    Image("splashsubtitle")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: width * 0.75)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.top, 120)
+                
             }
+            .ignoresSafeArea()
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onStart()
+            }
+            
         }
     }
 }
