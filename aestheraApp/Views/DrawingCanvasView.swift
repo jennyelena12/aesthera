@@ -37,16 +37,35 @@ struct PKCanvasRepresentable: UIViewRepresentable {
     }
 }
 
+struct PKGuideCanvasRepresentable: UIViewRepresentable {
+    let canvasView: PKCanvasView
+
+    func makeUIView(context: Context) -> PKCanvasView {
+        canvasView.backgroundColor    = .clear
+        canvasView.isOpaque           = false
+        canvasView.isScrollEnabled    = false
+        canvasView.contentInset       = .zero
+        canvasView.contentOffset      = .zero
+        canvasView.isUserInteractionEnabled = false
+        canvasView.overrideUserInterfaceStyle = .light
+        return canvasView
+    }
+
+    func updateUIView(_ uiView: PKCanvasView, context: Context) {}
+}
+
 struct DrawingCanvasView: View {
     let originalImage: UIImage
     let faceObservations: [CleanFaceData]
 
     @Environment(\.dismiss) private var dismiss
     @State private var canvasView       = PKCanvasView()
+    @State private var guideCanvasView = PKCanvasView()
+    @State private var guidesLoaded    = false
     @State private var selectedTool     : DrawingTool = .pen
     @State private var penThickness     : CGFloat = 5
     @State private var eraserThickness  : CGFloat = 20
-    @State private var showImage        = true
+    @State private var showThumbnail        = true
     @State private var showGuides       = true
     @State private var showSaveAlert    = false
 
@@ -56,16 +75,20 @@ struct DrawingCanvasView: View {
 
     var body: some View {
         ZStack {
-            Color(UIColor.systemGroupedBackground).ignoresSafeArea()
+            Color.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                canvasWithTools.padding(20)
-                Spacer()
-                thicknessSlider.padding(.horizontal, 40).padding(.bottom, 30)
+                thicknessSlider.padding(.horizontal, 20).padding(.vertical, 10)
+
+                canvasWithTools
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                Spacer(minLength: 0)
             }
         }
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar { navBar }
         .alert("Saved to Photos!", isPresented: $showSaveAlert) { Button("OK") {} }
     }
@@ -83,7 +106,6 @@ struct DrawingCanvasView: View {
                     .background(
                         RoundedRectangle(cornerRadius: 16)
                             .fill(Color.white)
-                            .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 4)
                     )
                 toolImage("pencil", tool: .pen)
                     .frame(width: width * 0.5, height: width * 0.5)
@@ -94,41 +116,79 @@ struct DrawingCanvasView: View {
                     .frame(width: width, height: height, alignment: .bottomTrailing)
                     .offset(x: width * 0.06, y: width * 0.28)
             }
-            .frame(width: width, height: height * 1.35)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
         .aspectRatio(1 / 1.35, contentMode: .fit)
     }
 
     private var canvasLayers: some View {
         ZStack {
-            if showImage {
-                Image(uiImage: originalImage)
-                    .resizable().scaledToFit()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            PKGuideCanvasRepresentable(canvasView: guideCanvasView)
+
+            if showThumbnail {
+                VStack {
+                    HStack {
+                        thumbnailView
+                            .padding(8)
+                        Spacer()
+                    }
+                    Spacer()
+                }
             }
-            if showGuides {
-                FaceLandmarkOverlay(
-                    imageSize: originalImage.size,
-                    observations: faceObservations
-                )
-            }
+
             PKCanvasRepresentable(
                 canvasView: $canvasView,
                 tool: selectedTool,
                 lineWidth: thickness
             )
         }
+        .onAppear {
+            guard !guidesLoaded else { return }
+            DispatchQueue.main.async {
+                guard guideCanvasView.bounds.width > 0 else { return }
+                let size = guideCanvasView.bounds.size
+                let drawing = GuidelineConvert.convertToDrawing(
+                    faces: faceObservations,
+                    drawnSize: size,
+                    offsetPoint: .zero
+                )
+                guideCanvasView.drawing = drawing
+                guidesLoaded = true
+            }
+        }
         .scaleEffect(zoomScale)
         .simultaneousGesture(
             MagnificationGesture()
                 .onChanged { value in
-                    let proposed = baseZoomScale * value
-                    zoomScale = min(max(proposed, 0.5), 4.0)
+                    zoomScale = min(max(baseZoomScale * value, 0.5), 4.0)
                 }
                 .onEnded { _ in
                     baseZoomScale = zoomScale
                 }
         )
+    }
+    
+    private var thumbnailView: some View {
+        ZStack {
+            Image(uiImage: originalImage)
+                .resizable()
+                .scaledToFit()
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            FaceLandmarkOverlay(
+                imageSize: originalImage.size,
+                observations: faceObservations,
+                drawingScale: 0.4
+            )
+        }
+        .frame(width: 100, height: 100)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color.white.opacity(0.6), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
     }
 
     @ViewBuilder
@@ -176,9 +236,9 @@ struct DrawingCanvasView: View {
             Text("Canvas").font(.headline)
         }
         ToolbarItemGroup(placement: .navigationBarTrailing) {
-            Button { showImage.toggle() } label: {
-                Image(systemName: showImage ? "eye.fill" : "eye.slash.fill")
-            }.tint(showImage ? .accentColor : .secondary)
+            Button { showThumbnail.toggle() } label: {
+                Image(systemName: showThumbnail ? "eye.fill" : "eye.slash.fill")
+            }.tint(showThumbnail ? .accentColor : .secondary)
 
             Button { canvasView.undoManager?.undo() } label: {
                 Image(systemName: "arrow.uturn.backward")
@@ -199,34 +259,27 @@ struct DrawingCanvasView: View {
     }
 
     private func saveToPhotos() {
-        let size = originalImage.size
+        let size     = originalImage.size
         let renderer = UIGraphicsImageRenderer(size: size)
+        let scale    = size.width / guideCanvasView.bounds.width
 
-        let canvasBounds = canvasView.bounds
-            
-            let exported = renderer.image { ctx in
-                UIColor.white.setFill()
-                ctx.fill(CGRect(origin: .zero, size: size))
-                if showImage {
-                    originalImage.draw(in: CGRect(origin: .zero, size: size))
-                }
-            if showGuides {
-                let guideView = FaceLandmarkOverlay(
-                    imageSize: size,
-                    observations: faceObservations
-                )
-                .frame(width: size.width, height: size.height)
-                let guideRenderer = ImageRenderer(content: guideView)
-                guideRenderer.proposedSize = .init(width: size.width, height: size.height)
-                guideRenderer.scale = 1
-                guideRenderer.uiImage?.draw(in: CGRect(origin: .zero, size: size))
-            }
+        let exported = renderer.image { ctx in
 
-                let drawingImage = canvasView.drawing.image(
-                            from: canvasBounds,
-                            scale: size.width / canvasBounds.width
-                        )
-                drawingImage.draw(in: CGRect(origin: .zero, size: size))
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+
+            let guideImage = guideCanvasView.drawing.image(
+                from: guideCanvasView.bounds,
+                scale: scale
+            )
+            guideImage.draw(in: CGRect(origin: .zero, size: size))
+
+
+            let drawingImage = canvasView.drawing.image(
+                from: canvasView.bounds,
+                scale: scale
+            )
+            drawingImage.draw(in: CGRect(origin: .zero, size: size))
         }
 
         UIImageWriteToSavedPhotosAlbum(exported, nil, nil, nil)
