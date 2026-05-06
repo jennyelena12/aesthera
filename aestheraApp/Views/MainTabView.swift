@@ -16,21 +16,21 @@ import SwiftUI
 
 
 struct MainTabView: View {
-
+    
     enum Tab: Hashable {
         case draw
         case myWorks
     }
-
+    
     @State private var selectedTab: Tab = .draw
-
+    
     @State private var drawRouter    = AppRouter()
     @State private var historyRouter = AppRouter()
-
-
+    
+    
     var body: some View {
         ZStack(alignment: .bottom) {
-
+            
             // ------- Active screen -------
             Group {
                 switch selectedTab {
@@ -43,27 +43,31 @@ struct MainTabView: View {
                             }
                     }
                     .environment(drawRouter)
-
+                    
                 case .myWorks:
                     NavigationStack(path: $historyRouter.path) {
-                        SavedResultsView()
-                            .navigationDestination(for: AppRouter.Route.self) { route in
-                                destinationView(for: route)
-                                    .environment(historyRouter)
+                        SavedResultsView(onBackToDraw: {
+                            withAnimation {
+                                selectedTab = .draw
                             }
+                        })
+                        .navigationDestination(for: AppRouter.Route.self) { route in
+                            destinationView(for: route)
+                                .environment(historyRouter)
+                        }
                     }
                     .environment(historyRouter)
                 }
             }
-
+            
             // ------- Floating liquid glass bar -------
             FloatingTabBar(selected: $selectedTab)
                 .padding(.horizontal, 60)
                 .padding(.bottom, 20)
         }
     }
-
-
+    
+    
     /// Single source of truth for resolving routes to views.
     @ViewBuilder
     private func destinationView(for route: AppRouter.Route) -> some View {
@@ -85,24 +89,24 @@ struct MainTabView: View {
 // MARK: - Floating liquid glass tab bar
 
 private struct FloatingTabBar: View {
-
+    
     @Binding var selected: MainTabView.Tab
-
+    
     var body: some View {
         HStack(spacing: 0) {
-
+            
             tabButton(tab: .draw, label: "Draw") {
                 // Pen icon
                 Image(systemName: selected == .draw ? "pencil" : "pencil")
                     .font(.system(size: 22, weight: selected == .draw ? .bold : .medium))
             }
-
+            
             tabButton(tab: .myWorks, label: "My Works") {
                 // Book with bookmark: closed book + small bookmark badge
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: "bookmark.fill")
                         .font(.system(size: 22, weight: selected == .myWorks ? .bold : .medium))
-    
+                    
                 }
             }
         }
@@ -113,7 +117,7 @@ private struct FloatingTabBar: View {
                 // Layer 1 — frosted blur material
                 Capsule()
                     .fill(.ultraThinMaterial)
-
+                
                 // Layer 2 — specular gradient: bright top, fades out
                 Capsule()
                     .fill(
@@ -150,7 +154,7 @@ private struct FloatingTabBar: View {
         .shadow(color: .black.opacity(0.20), radius: 28, x: 0, y: 12)
         .shadow(color: .black.opacity(0.08), radius:  6, x: 0, y:  3)
     }
-
+    
     @ViewBuilder
     private func tabButton<Icon: View>(
         tab: MainTabView.Tab,
@@ -158,7 +162,7 @@ private struct FloatingTabBar: View {
         @ViewBuilder icon: () -> Icon
     ) -> some View {
         let isActive = selected == tab
-
+        
         Button {
             withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
                 selected = tab
@@ -169,14 +173,14 @@ private struct FloatingTabBar: View {
                 icon()
                     .symbolRenderingMode(.hierarchical)
                     .frame(height: 24)
-
+                
                 Text(label)
                     .font(.tabLabel)
             }
             .foregroundStyle(
                 isActive
-                    ? Color.textOnDark
-                    : Color.textPrimary.opacity(0.70)
+                ? Color.textOnDark
+                : Color.textPrimary.opacity(0.70)
             )
             .padding(.horizontal, Spacing.l)
             .padding(.vertical, 10)
@@ -188,7 +192,7 @@ private struct FloatingTabBar: View {
                         // Base: brand navy fill
                         Capsule()
                             .fill(Color.brandNavy)
-
+                        
                         // Glass sheen over navy — light catches the top
                         Capsule()
                             .fill(
@@ -202,7 +206,7 @@ private struct FloatingTabBar: View {
                                     endPoint: .bottom
                                 )
                             )
-
+                        
                         // Bright top rim on the pill (glass edge refraction)
                         Capsule()
                             .strokeBorder(

@@ -79,7 +79,7 @@ struct OnboardingPageView: View {
                     Spacer()
                     
                     NavigationLink {
-                        ContentView()
+//                        ContentView()
                     } label: {
                         Text(page.buttonText)
                             .foregroundColor(.green)
