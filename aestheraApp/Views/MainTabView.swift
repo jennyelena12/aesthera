@@ -57,9 +57,23 @@ struct MainTabView: View {
             }
 
             // ------- Floating liquid glass bar -------
-            FloatingTabBar(selected: $selectedTab)
-                .padding(.horizontal, 60)
-                .padding(.bottom, 20)
+            
+            if shouldShowTabBar {
+                FloatingTabBar(selected: $selectedTab)
+                    .padding(.horizontal, 60)
+                    .padding(.bottom, 20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.28, dampingFraction: 0.86), value: shouldShowTabBar)
+    }
+
+    private var shouldShowTabBar: Bool {
+        switch selectedTab {
+        case .draw:
+            return drawRouter.path.isEmpty
+        case .myWorks:
+            return historyRouter.path.isEmpty
         }
     }
 
