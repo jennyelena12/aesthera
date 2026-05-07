@@ -2,7 +2,20 @@
 //  ResultView.swift
 //  aestheraApp
 //
-//  Created by Jesslyn Trixie Edvilie on 04/05/26.
+//  Translated from Figma "All brewed perfectly!" frame.
+//  Layout (top → bottom):
+//   1. Top row     — circular back button (left) + save button (right)
+//   2. Header      — "All brewed perfectly!" title (underlined) + subtitle
+//   3. Image card  — eye toggle, image w/ proportion overlay, opacity slider
+//   4. Buttons     — Download (secondary) + Draw Now! (primary)
+//
+//  HIG notes:
+//   • Back button replaces the system nav bar back chevron — single, clear
+//     way to leave the screen.
+//   • Save action moved to top-right (was a third bottom button before).
+//     Secondary actions belong in the nav-bar zone per HIG.
+//   • Bottom action buttons are 1 primary + 1 secondary, side-by-side. No
+//     more than 2 visible CTAs at once = clearer hierarchy.
 //
 
 import SwiftUI
@@ -16,42 +29,42 @@ struct ResultView: View {
     let faces: [CleanFaceData]
 
     @Environment(AppRouter.self) private var router
+    @Environment(\.modelContext) private var modelContext
 
+    // ── Detection state ────────────────────────────────────────────
     @State private var resultFaces: [CleanFaceData] = []
 
-
+    // ── Display tweaks the user can adjust ─────────────────────────
     @State private var lineOpacity: Double = 1.0
-
-
     @State private var lowOpacityReference: Bool = false
 
-
+    // ── Alert state ────────────────────────────────────────────────
     @State private var showSavedAlert = false
-    
-    @Environment(\.modelContext) private var modelContext
-    
     @State private var showSaveConfirmation = false
 
+
+    // MARK: - Body
+
     var body: some View {
-        VStack(spacing: 16) {
+        ZStack {
+            Color.appBackground.ignoresSafeArea()
 
-            // --- Image + adjustable proportion overlay ---
-            imageWithOverlay
-                .padding(.horizontal)
+            VStack(alignment: .leading, spacing: Spacing.l) {
 
-            // --- Controls (slider + toggle) ---
-            controls
-                .padding(.horizontal)
+                topRow
+                headerText
+                imageCard
 
-            Spacer()
+                Spacer(minLength: Spacing.l)
 
-            // --- Bottom action buttons ---
-            actionButtons
-                .padding(.horizontal)
-                .padding(.bottom, 20)
+                actionButtons
+            }
+            .padding(.horizontal, Spacing.screenH)
+            .padding(.top, Spacing.s)
+            .padding(.bottom, Spacing.l)
         }
-        .navigationTitle("Result")
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
         .onAppear {
             if resultFaces.isEmpty {
                 resultFaces = faces
@@ -65,51 +78,110 @@ struct ResultView: View {
         }
     }
 
-    // MARK: - Subviews
 
-    private var imageWithOverlay: some View {
-        ZStack {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .opacity(lowOpacityReference ? 0.3 : 1.0)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+    // MARK: - Sections
 
-            ForEach($resultFaces.indices, id: \.self) { idx in
-                AdjustableGuidelineOverlay(
-                    imageSize: image.size,
-                    face: $resultFaces[idx],
-                    lineWidth: 2.0
-                )
-                .opacity(lineOpacity)
+    private var topRow: some View {
+        HStack {
+            CircleIconButton(systemName: "chevron.left") {
+                router.popOne()
+            }
+
+            Spacer()
+
+            CircleIconButton(systemName: "bookmark") {
+                saveToWorks()
             }
         }
     }
 
-    private var controls: some View {
-        VStack(alignment: .leading, spacing: 14) {
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Line Opacity")
-                        .font(.subheadline)
-                    Spacer()
-                    Text("\(Int(lineOpacity * 100))%")
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                Slider(value: $lineOpacity, in: 0...1)
-            }
+    private var headerText: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("All brewed perfectly!")
+                .font(.system(size: 30, weight: .heavy))
+                .foregroundColor(Color.textPrimary)
+//                .underline(true, color: Color.textPrimary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Toggle("Dim reference photo", isOn: $lowOpacityReference)
+            Text("Everything's in place. Your sketch awaits.")
                 .font(.subheadline)
+                .foregroundColor(Color.textSecondary)
         }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
+
+
+    private var imageCard: some View {
+        VStack(spacing: Spacing.m) {
+
+            // Eye toggle in top-left of the card
+            HStack {
+                Button {
+                    lowOpacityReference.toggle()
+                } label: {
+                    Image(systemName: lowOpacityReference ? "eye.slash" : "eye")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.cardSurface, in: Circle())
+                        .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
+                }
+                Spacer()
+            }
+
+            // Image with adjustable proportion overlay
+            ZStack {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .opacity(lowOpacityReference ? 0.3 : 1.0)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                ForEach($resultFaces.indices, id: \.self) { idx in
+                    AdjustableGuidelineOverlay(
+                        imageSize: image.size,
+                        face: $resultFaces[idx],
+                        lineWidth: 2.0
+                    )
+                    .opacity(lineOpacity)
+                }
+            }
+
+            // Opacity slider with playful ghost icons on either side.
+            // NOTE: custom images need .resizable() + .scaledToFit() + .frame()
+            // to size correctly. .font() and .foregroundColor() only work on
+            // SF Symbols, not raster assets.
+            HStack(spacing: Spacing.m) {
+                Image("pacman")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+                    .opacity(0.3)
+
+                Slider(value: $lineOpacity, in: 0...1)
+                    .tint(Color.brandNavy)
+
+                Image("pacman")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+                    .opacity(0.9)
+            }
+            .padding(.horizontal, 4)
+        }
+        .padding(Spacing.l)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+    }
+
 
     private var actionButtons: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.m) {
+
+            // Secondary — Download (menu with JPEG / PNG options)
             Menu {
                 Button {
                     saveOverlayImage()
@@ -119,42 +191,53 @@ struct ResultView: View {
                 Button {
                     saveLinesOnlyAsPNG()
                 } label: {
-                    Label("Lines only (transparent PNG)", systemImage: "scribble.variable")
+                    Label("Lines only (PNG)", systemImage: "scribble.variable")
                 }
             } label: {
-                Label("Download", systemImage: "arrow.down.to.line")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down.to.line")
+                    Text("Download")
+                }
+                .font(.body.weight(.semibold))
+                .foregroundColor(Color.textPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.cardSurface)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.cardBorder, lineWidth: 1)
+                )
             }
-            .buttonStyle(.bordered)
 
-            // IMPORTANT: copy adjusted faces back onto the router before pushing canvas, so DrawingCanvasView gets the user's tweaked anchor positions, not the originally-detected ones.
+            // Primary — Draw Now!
             Button {
                 router.detectedFaces = resultFaces
                 router.openCanvas()
             } label: {
-                Label("Draw on Canvas", systemImage: "paintpalette.fill")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                HStack(spacing: 8) {
+                    Image(systemName: "paintpalette.fill")
+                    Text("Draw Now!")
+                }
+                .font(.body.weight(.semibold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.brandNavy)
+                )
             }
-            .buttonStyle(.borderedProminent)
-            
-            Button {
-                saveToWorks()
-            } label: {
-                Label("Save", systemImage: "bookmark")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-            }
-            .buttonStyle(.bordered)
         }
     }
 
-    // MARK: - Save logic
 
-    /// Mode A — composite of dimmed photo + lines, baked onto a white
-    /// background, saved as JPEG via UIImageWriteToSavedPhotosAlbum.
-    /// Useful when the user wants a single self-contained reference image.
+    // MARK: - Save logic (unchanged from before)
+
+    /// Composite of dimmed photo + lines, baked onto a white background,
+    /// saved as JPEG via UIImageWriteToSavedPhotosAlbum.
     private func saveOverlayImage() {
         let exportView = ZStack {
             Color.white
@@ -177,19 +260,18 @@ struct ResultView: View {
             showSavedAlert = true
         }
     }
-    
+
     private func saveToWorks() {
         let store = SavedScanStore(context: modelContext)
         let saved = store.save(
             image: image,
             faces: resultFaces,
-            source: "scan"   // change to "camera" / "library" / "curated" later if you track it
+            source: "scan"
         )
         if saved != nil {
             showSaveConfirmation = true
         }
     }
-
 
     private func saveLinesOnlyAsPNG() {
         let exportView = FaceLandmarkOverlay(
@@ -210,7 +292,6 @@ struct ResultView: View {
         savePNGToPhotos(pngData)
     }
 
-
     private func savePNGToPhotos(_ data: Data) {
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
             guard status == .authorized || status == .limited else { return }
@@ -227,6 +308,27 @@ struct ResultView: View {
         }
     }
 }
+
+
+// MARK: - Reusable circular icon button
+
+private struct CircleIconButton: View {
+    let systemName: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color.textPrimary)
+                .frame(width: 40, height: 40)
+                .background(Color.cardSurface, in: Circle())
+                .overlay(Circle().stroke(Color.cardBorder, lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+        }
+    }
+}
+
 
 #Preview {
     NavigationStack {

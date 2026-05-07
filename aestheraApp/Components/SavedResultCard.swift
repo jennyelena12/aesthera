@@ -41,11 +41,11 @@ struct SavedResultCard: View {
                 )
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
+//                Text(title)
+//                    .font(.caption)
+//                    .fontWeight(.semibold)
+//                    .foregroundColor(.primary)
+//                    .lineLimit(1)
                 
                 Text(dateString)
                     .font(.caption2)
