@@ -45,7 +45,8 @@ class FaceDetectorService {
         }
         
         let yoloResults = try await runYOLO(on: cgImage)
-        guard !yoloResults.isEmpty else { return [] }
+        guard !yoloResults.isEmpty else {
+            return [] }
         
         var validFaces: [CleanFaceData] = []
         
@@ -74,6 +75,8 @@ class FaceDetectorService {
     
     private func runYOLO(on image: CGImage) async throws -> [CGRect] {
         guard let request = yoloRequest else { return [] }
+        
+//        request.imageCropAndScaleOption = .scaleFit
         
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         try handler.perform([request])
@@ -188,21 +191,5 @@ class FaceDetectorService {
                               height: rect.height * imgHeight)
         
         return image.cropping(to: cropRect)
-    }
-    
-    private func makeSquareBoundingBox(_ box: CGRect, scale: CGFloat = 1.3) -> CGRect {
-        let centerX = box.midX
-        let centerY = box.midY
-        
-        let maxDimension = max(box.width, box.height)
-        
-        let scaledSide = maxDimension * scale
-        
-        return CGRect(
-            x: centerX - (scaledSide / 2.0),
-            y: centerY - (scaledSide / 2.0),
-            width: scaledSide,
-            height: scaledSide
-        )
     }
 }

@@ -12,6 +12,8 @@ import Vision
 struct FaceLandmarkOverlay: View {
     let imageSize: CGSize
     let observations: [CleanFaceData]
+    // 1. Add the drawingScale property with a default of 1.0
+    var drawingScale: CGFloat = 1.0
     
     var body: some View {
         Canvas { context, size in
@@ -24,19 +26,29 @@ struct FaceLandmarkOverlay: View {
                         y: p.y * scale * imageSize.height + offsetY)
             }
             
+            // 2. Scale the anchor dots
             func drawAnchor(_ point: CGPoint, color: Color, in context: inout GraphicsContext) {
-                let rect = CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)
+                let dotSize = 6 * drawingScale
+                let rect = CGRect(x: point.x - (dotSize/2), y: point.y - (dotSize/2), width: dotSize, height: dotSize)
                 context.fill(Path(ellipseIn: rect), with: .color(color))
             }
             
+            // 3. Scale the labels and their offsets
             func drawLabel(_ text: String, _ point: CGPoint, color: Color, in context: inout GraphicsContext) {
-                let resolved = context.resolve(
-                    Text(text).font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(color)
-                )
-                context.draw(resolved, at: CGPoint(x: point.x, y: point.y - 8), anchor: .bottom)
+                let fontSize = 10 * drawingScale
+                // Only draw labels if they are large enough to be readable
+                if fontSize > 3 {
+                    let resolved = context.resolve(
+                        Text(text)
+                            .font(.system(size: fontSize, weight: .bold, design: .monospaced))
+                            .foregroundStyle(color)
+                    )
+                    context.draw(resolved, at: CGPoint(x: point.x, y: point.y - (8 * drawingScale)), anchor: .bottom)
+                }
             }
             
             for face in observations {
+                // ... (Keep all your existing math logic the same) ...
                 let chin = makeCGPoint(face.chin)
                 let nose = makeCGPoint(face.nose)
                 let leftEyeTop = makeCGPoint(face.leftEyeTop)
@@ -61,7 +73,6 @@ struct FaceLandmarkOverlay: View {
                 var latDX = (leftDist > rightDist ? leftSide.x : rightSide.x) - (leftDist > rightDist ? rightSide.x : leftSide.x)
                 var latDY = (leftDist > rightDist ? leftSide.y : rightSide.y) - (leftDist > rightDist ? rightSide.y : leftSide.y)
                 let latLen = hypot(latDX, latDY)
-                
                 if latLen > 0 { latDX /= latLen; latDY /= latLen }
                 
                 let maxDist = max(leftDist, rightDist)
@@ -74,9 +85,12 @@ struct FaceLandmarkOverlay: View {
                     y: eyeMid.y - (cranialRadius * (0.3 + (noseRatio * 0.35))) + (pitchDelta * 0.35) + (latDY * cranialRadius * yawIntensity * 0.9)
                 )
                 
+                // 4. Scale the Stroke Widths
+                let lineWidth = 1.5 * drawingScale
+                
                 var cranialPath = Path()
                 cranialPath.addArc(center: cranialCenter, radius: cranialRadius, startAngle: .zero, endAngle: .degrees(360), clockwise: false)
-                context.stroke(cranialPath, with: .color(.red.opacity(0.8)), lineWidth: 1.5)
+                context.stroke(cranialPath, with: .color(.red.opacity(0.8)), lineWidth: lineWidth)
                 
                 let dist = hypot(eyeMid.x - chin.x, eyeMid.y - chin.y)
                 let len = dist + (cranialRadius * 2.0)
@@ -84,31 +98,33 @@ struct FaceLandmarkOverlay: View {
                 var centerLine = Path()
                 centerLine.move(to: chin)
                 centerLine.addLine(to: CGPoint(x: chin.x + ((eyeMid.x - chin.x) / dist) * len, y: chin.y + ((eyeMid.y - chin.y) / dist) * len))
-                context.stroke(centerLine, with: .color(.red.opacity(0.8)), lineWidth: 1.5)
+                context.stroke(centerLine, with: .color(.red.opacity(0.8)), lineWidth: lineWidth)
+                
+                // Scale the horizontal line extensions (the 25.0 and 15.0 values)
+                let eyeExt = 25.0 * drawingScale
+                let chinExt = 15.0 * drawingScale
                 
                 var upperEye = Path()
                 var lowerEye = Path()
-                upperEye.move(to: CGPoint(x: leftEyeTop.x - cos(eyeAngle) * 25.0, y: leftEyeTop.y - sin(eyeAngle) * 25.0))
-                upperEye.addLine(to: CGPoint(x: rightEyeTop.x + cos(eyeAngle) * 25.0, y: rightEyeTop.y + sin(eyeAngle) * 25.0))
-                lowerEye.move(to: CGPoint(x: leftEyeBottom.x - cos(eyeAngle) * 25.0, y: leftEyeBottom.y - sin(eyeAngle) * 25.0))
-                lowerEye.addLine(to: CGPoint(x: rightEyeBottom.x + cos(eyeAngle) * 25.0, y: rightEyeBottom.y + sin(eyeAngle) * 25.0))
+                upperEye.move(to: CGPoint(x: leftEyeTop.x - cos(eyeAngle) * eyeExt, y: leftEyeTop.y - sin(eyeAngle) * eyeExt))
+                upperEye.addLine(to: CGPoint(x: rightEyeTop.x + cos(eyeAngle) * eyeExt, y: rightEyeTop.y + sin(eyeAngle) * eyeExt))
+                lowerEye.move(to: CGPoint(x: leftEyeBottom.x - cos(eyeAngle) * eyeExt, y: leftEyeBottom.y - sin(eyeAngle) * eyeExt))
+                lowerEye.addLine(to: CGPoint(x: rightEyeBottom.x + cos(eyeAngle) * eyeExt, y: rightEyeBottom.y + sin(eyeAngle) * eyeExt))
                 
-                context.stroke(upperEye, with: .color(.red.opacity(0.8)), lineWidth: 1.5)
-                context.stroke(lowerEye, with: .color(.red.opacity(0.8)), lineWidth: 1.5)
+                context.stroke(upperEye, with: .color(.red.opacity(0.8)), lineWidth: lineWidth)
+                context.stroke(lowerEye, with: .color(.red.opacity(0.8)), lineWidth: lineWidth)
                 
                 var chinLine = Path()
-                chinLine.move(to: CGPoint(x: chin.x - cos(eyeAngle) * 15.0, y: chin.y - sin(eyeAngle) * 15.0))
-                chinLine.addLine(to: CGPoint(x: chin.x + cos(eyeAngle) * 15.0, y: chin.y + sin(eyeAngle) * 15.0))
-                context.stroke(chinLine, with: .color(.red.opacity(0.8)), lineWidth: 1.5)
+                chinLine.move(to: CGPoint(x: chin.x - cos(eyeAngle) * chinExt, y: chin.y - sin(eyeAngle) * chinExt))
+                chinLine.addLine(to: CGPoint(x: chin.x + cos(eyeAngle) * chinExt, y: chin.y + sin(eyeAngle) * chinExt))
+                context.stroke(chinLine, with: .color(.red.opacity(0.8)), lineWidth: lineWidth)
                 
-                drawLabel("Chin", CGPoint(x: chin.x + cos(eyeAngle) * 15.0, y: chin.y + sin(eyeAngle) * 15.0), color: .red, in: &context)
-                drawLabel("Eyes", CGPoint(x: rightEyeTop.x + cos(eyeAngle) * 25.0, y: rightEyeTop.y + sin(eyeAngle) * 25.0), color: .red, in: &context)
+                drawLabel("Chin", CGPoint(x: chin.x + cos(eyeAngle) * chinExt, y: chin.y + sin(eyeAngle) * chinExt), color: .red, in: &context)
+                drawLabel("Eyes", CGPoint(x: rightEyeTop.x + cos(eyeAngle) * eyeExt, y: rightEyeTop.y + sin(eyeAngle) * eyeExt), color: .red, in: &context)
 
-                
                 let anchors = [chin, leftEyeCenter, leftEyeTop, leftEyeBottom, leftSide, rightSide, rightEyeCenter, rightEyeTop, rightEyeBottom]
                 anchors.forEach { drawAnchor($0, color: .orange, in: &context) }
             }
         }
     }
 }
-

@@ -15,13 +15,13 @@ enum FaceDetectionState: Equatable {
     case error(String)
 }
 
-struct AnchorPoint: Equatable {
+struct AnchorPoint: Equatable, Codable {
     var x: CGFloat
     var y: CGFloat
     var confidence: Float
 }
 
-struct CleanFaceData: Equatable {
+struct CleanFaceData: Equatable, Codable {
     var chin: AnchorPoint
     var mouth: AnchorPoint
     var nose: AnchorPoint
