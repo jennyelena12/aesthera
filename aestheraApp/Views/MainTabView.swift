@@ -86,7 +86,7 @@ struct MainTabView: View {
     @ViewBuilder
     private func destinationView(for route: AppRouter.Route) -> some View {
         switch route {
-        case .faceScanner:        FaceScannerView()
+//        case .faceScanner:        FaceScannerView()
         case .curatedReferences:  CuratedReferencesView()
         case .tutorial:           TutorialView()
         case .sheetGallery:       SheetGalleryView()

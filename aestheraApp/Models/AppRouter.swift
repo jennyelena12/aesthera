@@ -13,7 +13,7 @@ class AppRouter {
 
     // MARK: - Routes
     enum Route: Hashable {
-        case faceScanner
+//        case faceScanner
         case curatedReferences
         case tutorial
         case sheetGallery

@@ -2,42 +2,46 @@
 //  DrawingCanvasView.swift
 //  aestheraApp
 //
-//  Created by Elena Nathanielle on 04/05/26.
+//  Created by Elena Nathanielle on 03/05/26.
 //
 
 import SwiftUI
 import PencilKit
 
+enum DrawingTool {
+    case pen
+    case eraser
+}
+
 struct PKCanvasRepresentable: UIViewRepresentable {
+
     @Binding var canvasView: PKCanvasView
-    @Binding var isDrawingMode: Bool
-    @Binding var isEraser: Bool
-    
+    let tool: DrawingTool
+    let lineWidth: CGFloat
+
     func makeUIView(context: Context) -> PKCanvasView {
-        canvasView.isOpaque = false
         canvasView.backgroundColor = .clear
-        canvasView.drawingPolicy = .anyInput
-        
-        canvasView.minimumZoomScale = 0.5
-        canvasView.maximumZoomScale = 5
-        canvasView.bouncesZoom = true
+        canvasView.isOpaque        = false
+        canvasView.drawingPolicy   = .anyInput
+        canvasView.overrideUserInterfaceStyle = .light
+
+        canvasView.isScrollEnabled = false
+        canvasView.contentInset    = .zero
+        canvasView.contentOffset   = .zero
+
         return canvasView
     }
-    
+
     func updateUIView(_ uiView: PKCanvasView, context: Context) {
-        if isDrawingMode {
-            uiView.becomeFirstResponder()
-            if isEraser {
-                uiView.tool = PKEraserTool(.bitmap)
-            } else {
-                uiView.tool = PKInkingTool(.pen, color: .black, width: 5)
-            }
-        } else {
-            uiView.resignFirstResponder()
+        switch tool {
+        case .pen:
+            uiView.tool = PKInkingTool(.pencil, color: .black, width: lineWidth)
+        case .eraser:
+            uiView.tool = PKEraserTool(.bitmap, width: lineWidth)
         }
     }
 }
-    
+
 struct PKGuideCanvasRepresentable: UIViewRepresentable {
     let canvasView: PKCanvasView
 
@@ -63,29 +67,35 @@ struct DrawingCanvasView: View {
     @State private var canvasView       = PKCanvasView()
     @State private var guideCanvasView = PKCanvasView()
     @State private var guidesLoaded    = false
+    @State private var selectedTool     : DrawingTool = .pen
     @State private var penThickness     : CGFloat = 5
     @State private var eraserThickness  : CGFloat = 20
     @State private var showThumbnail        = true
     @State private var showGuides       = true
     @State private var showSaveAlert    = false
-    @State private var isDrawingMode = true
-    @State private var isEraser = false;
+
     @State private var zoomScale     : CGFloat = 1.0
     @State private var baseZoomScale : CGFloat = 1.0
-    private var thickness: CGFloat { isDrawingMode ? penThickness : eraserThickness }
+    private var thickness: CGFloat { selectedTool == .pen ? penThickness : eraserThickness }
 
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                thicknessSlider.padding(.horizontal, 20).padding(.vertical, 10)
+
+                thicknessSlider
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
 
                 canvasWithTools
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
-                Spacer(minLength: 0)
+                    .padding(.top, 20)
+
+                Spacer()
+                    .frame(height: 110)
             }
+
+            bottomTools
         }
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
@@ -95,33 +105,31 @@ struct DrawingCanvasView: View {
     }
 
     private var canvasWithTools: some View {
-        GeometryReader { geo in
-            let imageAspect = originalImage.size.height / originalImage.size.width
-            let width = geo.size.width
-            let height = width * imageAspect
-
-            ZStack {
-                canvasLayers
-                    .frame(width: width, height: height)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white)
-                    )
-                toolImage("pencil", isActive: isDrawingMode)
-                    .frame(width: width * 0.5, height: width * 0.5)
-                    .frame(width: width, height: height, alignment: .bottomLeading)
-                    .offset(x: -width * 0.06, y: width * 0.28)
-                toolImage("eraser", isActive: isEraser)
-                    .frame(width: width * 0.5, height: width * 0.5)
-                    .frame(width: width, height: height, alignment: .bottomTrailing)
-                    .offset(x: width * 0.06, y: width * 0.28)
-            }
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
-        }
-        .aspectRatio(1 / 1.35, contentMode: .fit)
+        canvasLayers
+            .frame(width: 350, height: 500)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
     }
+    
+    private var bottomTools: some View {
+        GeometryReader { geo in
+            HStack(spacing: -90) {
 
+                toolImage("pencil", tool: .pen)
+                    .frame(width: 180, height: 180)
+
+                toolImage("eraser", tool: .eraser)
+                    .frame(width: 180, height: 180)
+            }
+            .position(
+                x: 120,
+                y: geo.size.height - 20
+            )
+        }
+        .ignoresSafeArea()
+    }
+    
+    
     private var canvasLayers: some View {
         ZStack {
 
@@ -140,8 +148,8 @@ struct DrawingCanvasView: View {
 
             PKCanvasRepresentable(
                 canvasView: $canvasView,
-                isDrawingMode: $isDrawingMode,
-                isEraser: $isEraser
+                tool: selectedTool,
+                lineWidth: thickness
             )
         }
         .onAppear {
@@ -193,16 +201,10 @@ struct DrawingCanvasView: View {
     }
 
     @ViewBuilder
-    private func toolImage(_ name: String, isActive: Bool) -> some View {
+    private func toolImage(_ name: String, tool: DrawingTool) -> some View {
+        let isActive = selectedTool == tool
         Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.55)) {
-                if name == "pencil" {
-                    isDrawingMode = true
-                }
-                else{
-                    isEraser = true
-                }
-            }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.55)) { selectedTool = tool }
         } label: {
             Image(name)
                 .resizable()
@@ -216,19 +218,17 @@ struct DrawingCanvasView: View {
     private var thicknessSlider: some View {
         VStack(spacing: 6) {
             HStack {
-                Text(isDrawingMode ? "Pen size" : "Eraser size")
+                Text(selectedTool == .pen ? "Pen size" : "Eraser size")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Text("\(Int(thickness)) pt")
                     .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
-            let isPen = isDrawingMode
-            Slider(value: isPen ? $penThickness : $eraserThickness, in: isPen ? 1...30 : 5...60 , step: 1).tint(isPen ? .black : .gray)
-//            if selectedTool == .pen {
-//                Slider(value: $penThickness, in: 1...30, step: 1).tint(.black)
-//            } else {
-//                Slider(value: $eraserThickness, in: 5...60, step: 1).tint(.gray)
-//            }
+            if selectedTool == .pen {
+                Slider(value: $penThickness, in: 1...30, step: 1).tint(.black)
+            } else {
+                Slider(value: $eraserThickness, in: 5...60, step: 1).tint(.gray)
+            }
         }
         .padding(12)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -268,31 +268,35 @@ struct DrawingCanvasView: View {
     }
 
     private func saveToPhotos() {
-        let size     = originalImage.size
-        let renderer = UIGraphicsImageRenderer(size: size)
-        let scale    = size.width / guideCanvasView.bounds.width
+
+        let canvasSize = CGSize(width: 350, height: 500)
+
+        let renderer = UIGraphicsImageRenderer(size: canvasSize)
+
+        let scale = canvasSize.width / guideCanvasView.bounds.width
 
         let exported = renderer.image { ctx in
 
             UIColor.white.setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
+            ctx.fill(CGRect(origin: .zero, size: canvasSize))
 
             let guideImage = guideCanvasView.drawing.image(
                 from: guideCanvasView.bounds,
                 scale: scale
             )
-            guideImage.draw(in: CGRect(origin: .zero, size: size))
 
+            guideImage.draw(in: CGRect(origin: .zero, size: canvasSize))
 
             let drawingImage = canvasView.drawing.image(
                 from: canvasView.bounds,
                 scale: scale
             )
-            drawingImage.draw(in: CGRect(origin: .zero, size: size))
+
+            drawingImage.draw(in: CGRect(origin: .zero, size: canvasSize))
         }
 
         UIImageWriteToSavedPhotosAlbum(exported, nil, nil, nil)
+
         showSaveAlert = true
     }
-
 }
