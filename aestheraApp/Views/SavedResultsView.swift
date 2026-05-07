@@ -60,29 +60,21 @@ struct SavedResultsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: {
+                CircleIconButton(systemName: "chevron.left") {
                     if router.path.isEmpty {
                         onBackToDraw?()
                     } else {
                         router.popOne()
                     }
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.black)
-                        .frame(width: 40, height: 40)
-                        .background(Color.white)
-                        .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
                 }
             }
-            
+
             ToolbarItem(placement: .principal) {
                 Text("Your Past Works")
                     .font(.title3)
                     .fontWeight(.semibold)
             }
-            
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button {
@@ -90,19 +82,15 @@ struct SavedResultsView: View {
                     } label: {
                         Label("Upload from Photos", systemImage: "photo.on.rectangle")
                     }
-                    
+
                     Button {
                         router.push(.camera)
                     } label: {
                         Label("Open Camera", systemImage: "camera")
                     }
                 } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
-                        .background(Color(red: 0.18, green: 0.2, blue: 0.35))
-                        .clipShape(Circle())
+                    // Menu owns the tap, so use the chrome view (no Button wrapping)
+                    CircleIconChrome(systemName: "plus", style: .primary, iconSize: 18)
                 }
             }
         }

@@ -85,32 +85,39 @@ enum Radius {
 
 
 // MARK: - Typography
-// Using SF Pro for now. If Figma specifies a custom font (e.g. "Quicksand",
-// "Plus Jakarta Sans"), drop the .ttf into the project, register it in
-// Info.plist (UIAppFonts), and swap the calls below to use that family.
+//
+// All app typography uses Nunito (see the Font.nunito helper below).
+// To change a token, only edit this section — every screen reads from these.
+//
+// Sizes are pulled from the Figma file. Verify by clicking the text in
+// Figma → right panel → Size. Weight maps as follows:
+//   Figma "Bold 700"     → .bold
+//   Figma "SemiBold 600" → .semibold
+//   Figma "Regular 400"  → .regular
+//   Figma "Black 900"    → .black
 
 extension Font {
 
     /// "What are we drawing today?" — main screen heading.
-    static let screenTitle    = Font.system(size: 26, weight: .bold,    design: .default)
+    static let screenTitle    = Font.nunito(size: 26, weight: .bold)
 
     /// "Pick your own reference" / "Pick from our examples" section heads.
-    static let sectionTitle   = Font.system(size: 18, weight: .semibold, design: .default)
+    static let sectionTitle   = Font.nunito(size: 18, weight: .semibold)
 
     /// CTA card titles ("Open Camera", "Upload from Photos").
-    static let ctaTitle       = Font.system(size: 22, weight: .bold,    design: .default)
+    static let ctaTitle       = Font.nunito(size: 22, weight: .bold)
 
     /// Reference card title ("Yuji Itadori", "Annabelle"...).
-    static let cardTitle      = Font.system(size: 17, weight: .semibold, design: .default)
+    static let cardTitle      = Font.nunito(size: 17, weight: .semibold)
 
     /// Filter chip label.
-    static let chip           = Font.system(size: 15, weight: .semibold, design: .default)
+    static let chip           = Font.nunito(size: 15, weight: .semibold)
 
     /// Tiny category badge under each card.
-    static let badge          = Font.system(size: 11, weight: .semibold, design: .default)
+    static let badge          = Font.nunito(size: 11, weight: .semibold)
 
     /// Bottom tab label.
-    static let tabLabel       = Font.system(size: 13, weight: .semibold, design: .default)
+    static let tabLabel       = Font.nunito(size: 13, weight: .semibold)
 }
 
 
@@ -123,5 +130,27 @@ extension Color {
         let g = Double((hex >>  8) & 0xFF) / 255.0
         let b = Double( hex        & 0xFF) / 255.0
         self.init(.sRGB, red: r, green: g, blue: b, opacity: alpha)
+    }
+}
+
+// MARK: - Nunito font helper
+//
+// Mirrors the system font API (size + weight) but uses Nunito.
+// Usage:  Font.nunito(size: 26, weight: .bold)
+//
+// If a weight isn't bundled, it falls back to the closest available one.
+
+extension Font {
+    static func nunito(size: CGFloat, weight: Weight = .regular) -> Font {
+        let name: String
+        switch weight {
+        case .black, .heavy:           name = "Nunito-Black"
+        case .bold:                    name = "Nunito-Bold"
+        case .semibold:                name = "Nunito-SemiBold"
+        case .medium:                  name = "Nunito-Medium"
+        case .light, .thin, .ultraLight: name = "Nunito-Light"
+        default:                       name = "Nunito-Regular"
+        }
+        return .custom(name, size: size)
     }
 }

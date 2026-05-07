@@ -1,12 +1,12 @@
 [
   {
-    "title": "Anime A",
+    "title": "Chibiusa Tsukino",
     "category": "Anime",
     "assetName": "ref_anime_01",
     "placeholderSymbol": "person.fill"
   },
   {
-    "title": "Anime B",
+    "title": "Yuji Itadori",
     "category": "Anime",
     "assetName": "ref_anime_02",
     "placeholderSymbol": "person.crop.circle.fill"
@@ -18,37 +18,37 @@
     "placeholderSymbol": "person.bust.fill"
   },
   {
-    "title": "Realism A",
+    "title": "Black Widow",
     "category": "Realism",
     "assetName": "ref_realism_01",
     "placeholderSymbol": "face.smiling.inverse"
   },
   {
-    "title": "Realism B",
+    "title": "Tom Cruise",
     "category": "Realism",
     "assetName": "ref_realism_02",
     "placeholderSymbol": "face.dashed"
   },
   {
-    "title": "Semi-Realism A",
+    "title": "True Beauty's Suho",
     "category": "Semi-Realism",
     "assetName": "ref_semi_01",
     "placeholderSymbol": "person.crop.square"
   },
   {
-    "title": "Semi-Realism B",
+    "title": "True Beauty's Jugyeong",
     "category": "Semi-Realism",
     "assetName": "ref_semi_02",
     "placeholderSymbol": "person.crop.rectangle"
   },
   {
-    "title": "Manga A",
+    "title": "Sailor Moon",
     "category": "Manga",
     "assetName": "ref_manga_01",
     "placeholderSymbol": "scribble"
   },
   {
-    "title": "Manga B",
+    "title": "SpyxFamily",
     "category": "Manga",
     "assetName": "ref_manga_02",
     "placeholderSymbol": "scribble.variable"

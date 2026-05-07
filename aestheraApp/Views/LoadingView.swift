@@ -23,35 +23,43 @@ struct LoadingView: View {
     @State private var viewModel = FaceScannerViewModel()
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
+        ZStack(){
+            Image("background_asset")
+                        .resizable()
+                        .scaledToFill()
+                        .opacity(0.076)
+                        .ignoresSafeArea() // Modern version of edgesIgnoringSafeArea
+            
+            VStack(spacing: 20) {
+                Spacer()
 
-            ProgressView()
-                .scaleEffect(1.5)
+                ProgressView()
+                    .scaleEffect(1.5)
 
-            Text("Detecting face proportions…")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                Text("Detecting face proportions…")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
 
-            Spacer()
-        }
-        .navigationBarBackButtonHidden(true) // user can't go back mid-detection
-        .navigationTitle("")
-        .task {
-            // Kick off detection. Async — the .onChange below reacts when finished.
-            viewModel.processSelectedImage(image)
-        }
-        .onChange(of: viewModel.detectionState) { _, newState in
-            switch newState {
-            case .success(let faces):
-                // Router replaces .loading with .result on the stack.
-                router.showResult(faces: faces)
-            case .noFaceDetected:
-                router.showFail(message: "We couldn't detect a face in your photo.")
-            case .error(let msg):
-                router.showFail(message: msg)
-            default:
-                break // .idle / .analyzing — keep showing the spinner
+                Spacer()
+            }
+            .navigationBarBackButtonHidden(true) // user can't go back mid-detection
+            .navigationTitle("")
+            .task {
+                // Kick off detection. Async — the .onChange below reacts when finished.
+                viewModel.processSelectedImage(image)
+            }
+            .onChange(of: viewModel.detectionState) { _, newState in
+                switch newState {
+                case .success(let faces):
+                    // Router replaces .loading with .result on the stack.
+                    router.showResult(faces: faces)
+                case .noFaceDetected:
+                    router.showFail(message: "We couldn't detect a face in your photo.")
+                case .error(let msg):
+                    router.showFail(message: msg)
+                default:
+                    break // .idle / .analyzing — keep showing the spinner
+                }
             }
         }
     }
