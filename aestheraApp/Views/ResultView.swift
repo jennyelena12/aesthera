@@ -83,6 +83,7 @@ struct ResultView: View {
 
     private var topRow: some View {
         HStack {
+            // Same circular chrome used everywhere — see Components/CircleIconButton.swift
             CircleIconButton(systemName: "chevron.left") {
                 router.popOne()
             }
@@ -305,26 +306,6 @@ struct ResultView: View {
                     }
                 }
             }
-        }
-    }
-}
-
-
-// MARK: - Reusable circular icon button
-
-private struct CircleIconButton: View {
-    let systemName: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(Color.textPrimary)
-                .frame(width: 40, height: 40)
-                .background(Color.cardSurface, in: Circle())
-                .overlay(Circle().stroke(Color.cardBorder, lineWidth: 0.5))
-                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
         }
     }
 }
