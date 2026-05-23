@@ -12,7 +12,6 @@
 import Foundation
 import SwiftUI
 
-
 struct SavedResultCard: View {
     let scan: SavedScan
     let title: String
@@ -21,25 +20,20 @@ struct SavedResultCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
 
-            // Image area — same pattern as ReferenceCard:
-            // square aspect, .scaledToFill + .clipped to crop cleanly.
-            ZStack {
-                Color(.secondarySystemBackground)
-
-                if let img = SavedScanStore.loadImage(for: scan) {
-                    Image(uiImage: img)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Image(systemName: "photo")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.secondary)
+            Color(.secondarySystemBackground)
+                .aspectRatio(1, contentMode: .fit)
+                .overlay {
+                    if let img = SavedScanStore.loadImage(for: scan) {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Image(systemName: "photo")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.secondary)
+                    }
                 }
-            }
-            .aspectRatio(1, contentMode: .fit)
-            .frame(maxWidth: .infinity)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: Radius.image, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.image, style: .continuous))
 
             // Title slot — kept commented out since the 3-col grid is tight.
             // Re-enable here if you want titles back.
